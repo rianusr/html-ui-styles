@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>20 种 HTML UI 风格模板</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  min-height: 100vh; padding: 60px 40px; color: #fff;
+}
+.container { max-width: 1800px; margin: 0 auto; }
+h1 { font-size: 44px; font-weight: 700; text-align: center; margin-bottom: 8px; text-shadow: 0 2px 20px rgba(0,0,0,.3); }
+.subtitle { text-align: center; font-size: 16px; opacity: .65; margin-bottom: 48px; letter-spacing: 1px; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+@media (max-width: 1400px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+.card {
+  background: rgba(255,255,255,.96); border-radius: 14px; text-decoration: none; color: #333;
+  transition: transform .35s, box-shadow .35s; box-shadow: 0 8px 30px rgba(0,0,0,.25);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.card:hover { transform: translateY(-7px); box-shadow: 0 18px 44px rgba(0,0,0,.38); }
+
+/* ═══════════════════════════════════════════
+   PREVIEW — 340px square, 35/30/35 split
+   ═══════════════════════════════════════════ */
+.card-preview { height: 340px; display: flex; flex-shrink: 0; overflow: hidden; font-family: var(--c-body), sans-serif; }
+.pv { display: flex; width: 100%; height: 100%; }
+
+/* ─ Sidebar ─ */
+.pv-sb { width: 24px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 3px; background: var(--c-surface); border-right: 1px solid var(--c-border); }
+.pv-sb-brand { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; background: var(--c-primary); }
+.pv-sb-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; background: var(--c-muted); opacity: .4; }
+.pv-sb-divider { width: 12px; height: 1px; margin: 5px 0; flex-shrink: 0; background: var(--c-border); }
+
+/* ─ Body — 3 rows split 35:30:35 ─ */
+.pv-body { flex: 1; display: flex; flex-direction: column; padding: 10px; gap: 6px; overflow: hidden; background: var(--c-bg); }
+
+/* Row 1 — 3 Model Cards (44%) */
+.pv-cards { display: flex; gap: 5px; flex: 44; min-height: 0; }
+.pv-card { flex: 1; display: flex; flex-direction: column; border-radius: 5px; overflow: hidden; border: 1px solid var(--c-border); background: var(--c-surface); }
+.pv-card-img { height: 52px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; background: var(--c-primary); }
+.pv-card-body { flex: 1; padding: 7px 9px 9px; display: flex; flex-direction: column; gap: 3px; }
+.pv-card-title { font-size: 13px; font-weight: 700; color: var(--c-text); font-family: var(--c-display), serif; line-height: 1.2; }
+.pv-card-text { font-size: 8px; color: var(--c-muted); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-card-btn { font-size: 8px; padding: 4px 8px; border-radius: 2px; display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--c-border); color: var(--c-text); background: transparent; width: fit-content; cursor: default; line-height: 1.3; margin-top: auto; }
+
+/* Row 2 — 4 Stats Cards (28%) */
+.pv-stats { display: flex; gap: 5px; flex: 28; }
+.pv-stat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 5px; padding: 4px 6px; gap: 4px; background: var(--c-surface); border: 1px solid var(--c-border); }
+.pv-stat-val { font-size: 32px; font-weight: 700; font-family: var(--c-display), serif; color: var(--c-text); line-height: 1; }
+.pv-stat-lbl { font-size: 9px; color: var(--c-muted); text-transform: uppercase; letter-spacing: .1em; line-height: 1; }
+
+/* Row 3 — Hero Bar (28%) */
+.pv-hero { border-radius: 5px; padding: 12px 14px; flex: 28; display: flex; flex-direction: column; justify-content: center; }
+.pv-hero-tag { font-size: 8px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .55; margin-bottom: 3px; color: inherit; }
+.pv-hero-title { font-size: 18px; font-weight: 700; line-height: 1.2; margin-bottom: 4px; font-family: var(--c-display), serif; color: inherit; }
+.pv-hero-actions { display: flex; align-items: center; gap: 5px; }
+.pv-hero-style { margin-left: auto; font-size: 19px; font-weight: 800; opacity: 1; font-family: var(--c-display), serif; color: inherit; display: flex; align-items: center; gap: 4px; white-space: nowrap; background: rgba(255,255,255,.18); padding: 4px 12px; border-radius: 4px; letter-spacing: .5px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.pv-hero-style .arr { transition: transform .25s; }
+.card:hover .pv-hero-style .arr { transform: translateX(4px); }
+.pv-btn-primary { font-size: 9px; padding: 4px 10px; border: none; border-radius: 2px; font-weight: 600; cursor: default; line-height: 1.3; }
+.pv-btn-secondary { font-size: 9px; padding: 4px 10px; background: transparent; border-radius: 2px; cursor: default; line-height: 1.3; }
+.pv-btn-ghost { font-size: 9px; padding: 4px 10px; background: transparent; border: none; border-radius: 2px; cursor: default; line-height: 1.3; }
+
+/* ─── S1. 技术文档 Tech Docs ─── */
+.techdocs-preview {
+  --c-bg: #ffffff; --c-surface: #fff; --c-text: #0b1a2e; --c-muted: #6b7c93;
+  --c-border: #e2e8f0; --c-primary: #2563eb;
+  --c-body: 'Inter', sans-serif; --c-display: 'Inter', sans-serif;
+}
+.techdocs-preview .pv-hero { background: linear-gradient(135deg, #0b1a2e, #1e3a5f); color: #fff; }
+.techdocs-preview .pv-btn-primary { background: #2563eb; color: #fff; }
+.techdocs-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.35); color: #fff; }
+.techdocs-preview .pv-btn-ghost { color: rgba(255,255,255,.4); }
+.techdocs-preview .pv-card-img { background: #0b1a2e; }
+.techdocs-preview .pv-card:nth-child(2) .pv-card-img { background: #2563eb; }
+.techdocs-preview .pv-card:nth-child(3) .pv-card-img { background: #1e3a5f; }
+.techdocs-preview .pv-stat { background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; }
+.techdocs-preview .pv-stat-val { color: #0b1a2e; }
+.techdocs-preview .pv-stat-lbl { color: #6b7c93; }
+
+/* ─── S2. 数据看板 Dashboard ─── */
+.dashboard-preview {
+  --c-bg: #f0f2f5; --c-surface: #fff; --c-text: #1a2332; --c-muted: #6b7b8d;
+  --c-border: #e2e8f0; --c-primary: #0d5e7a;
+  --c-body: 'Inter', sans-serif; --c-display: 'Inter', sans-serif;
+}
+.dashboard-preview .pv-hero { background: linear-gradient(135deg, #0d5e7a, #14a0b5); color: #fff; border-radius: 6px; }
+.dashboard-preview .pv-btn-primary { background: #0d5e7a; color: #fff; }
+.dashboard-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.35); color: #fff; }
+.dashboard-preview .pv-btn-ghost { color: rgba(255,255,255,.4); }
+.dashboard-preview .pv-card-img { background: #0d5e7a; }
+.dashboard-preview .pv-card:nth-child(2) .pv-card-img { background: #14a0b5; }
+.dashboard-preview .pv-card:nth-child(3) .pv-card-img { background: #1a2332; }
+.dashboard-preview .pv-stat { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; }
+.dashboard-preview .pv-stat-val { color: #0d5e7a; }
+.dashboard-preview .pv-stat-lbl { color: #6b7b8d; }
+
+/* ═══════════════════════════════════════════
+   10 FULL THEMES
+   ═══════════════════════════════════════════ */
+
+/* ─── 1. 极简 Minimalism ─── */
+.minimal-preview {
+  --c-bg: #f8f7f4; --c-surface: #fff; --c-text: #1a1a1a; --c-muted: #888;
+  --c-border: #e0ddd8; --c-primary: #1a1a1a;
+  --c-body: 'Inter', sans-serif; --c-display: 'Playfair Display', serif;
+}
+.minimal-preview .pv-stat { background: #fff; border: 1px solid #e0ddd8; }
+.minimal-preview .pv-stat-val { color: #1a1a1a; font-family: 'Playfair Display', serif; }
+.minimal-preview .pv-stat-lbl { color: #999; }
+.minimal-preview .pv-hero { background: #1a1a1a; color: #fff; }
+.minimal-preview .pv-btn-primary { background: #fff; color: #1a1a1a; }
+.minimal-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.45); color: #fff; }
+.minimal-preview .pv-btn-ghost { color: rgba(255,255,255,.45); }
+.minimal-preview .pv-card-img { background: #3a3a3a; }
+.minimal-preview .pv-card:nth-child(2) .pv-card-img { background: #1a1a1a; }
+.minimal-preview .pv-card:nth-child(3) .pv-card-img { background: #2d6a4f; }
+
+/* ─── 2. 玻璃 Glassmorphism ─── */
+.glass-preview {
+  --c-bg: transparent; --c-surface: rgba(255,255,255,.08); --c-text: rgba(255,255,255,.85);
+  --c-muted: rgba(255,255,255,.5); --c-border: rgba(255,255,255,.1);
+  --c-primary: rgba(255,255,255,.15);
+  --c-body: 'Inter', sans-serif; --c-display: 'Playfair Display', serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+.glass-preview .pv-sb, .glass-preview .pv-card, .glass-preview .pv-stat, .glass-preview .pv-hero { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.glass-preview .pv-stat { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.07); }
+.glass-preview .pv-stat-val { color: #fff; }
+.glass-preview .pv-stat-lbl { color: rgba(255,255,255,.45); }
+.glass-preview .pv-hero { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.08); color: #fff; }
+.glass-preview .pv-btn-primary { background: rgba(255,255,255,.2); color: #fff; }
+.glass-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.25); color: #fff; }
+.glass-preview .pv-btn-ghost { color: rgba(255,255,255,.4); }
+.glass-preview .pv-card-img { background: rgba(255,255,255,.1); }
+.glass-preview .pv-card:nth-child(2) .pv-card-img { background: rgba(255,255,255,.15); }
+.glass-preview .pv-card:nth-child(3) .pv-card-img { background: rgba(255,255,255,.1); }
+
+/* ─── 3. 新拟物 Neumorphism ─── */
+.neu-preview {
+  --c-bg: #e8e8f0; --c-surface: #e8e8f0; --c-text: #555; --c-muted: #999;
+  --c-border: #d5d5e0; --c-primary: #a78bfa;
+  --c-body: 'Inter', sans-serif; --c-display: 'Playfair Display', serif;
+}
+.neu-preview .pv-sb { box-shadow: inset -2px 0 3px rgba(255,255,255,.4), inset 1px 0 3px rgba(0,0,0,.05); }
+.neu-preview .pv-stat { background: #e8e8f0; border: none; box-shadow: -2px -2px 5px rgba(255,255,255,.7), 2px 2px 5px rgba(0,0,0,.06); }
+.neu-preview .pv-stat-val { color: #a78bfa; font-weight: 800; }
+.neu-preview .pv-stat-lbl { color: #aaa; }
+.neu-preview .pv-card, .neu-preview .pv-hero { box-shadow: -3px -3px 6px rgba(255,255,255,.6), 3px 3px 6px rgba(0,0,0,.06); border: none; }
+.neu-preview .pv-hero { background: #a78bfa; color: #fff; }
+.neu-preview .pv-btn-primary { background: #fff; color: #a78bfa; box-shadow: -1px -1px 2px rgba(255,255,255,.5), 1px 1px 2px rgba(0,0,0,.05); }
+.neu-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.35); color: #fff; }
+.neu-preview .pv-btn-ghost { color: rgba(255,255,255,.45); }
+.neu-preview .pv-card-img { background: #ddd; color: #888; }
+.neu-preview .pv-card:nth-child(2) .pv-card-img { background: #ddd; }
+.neu-preview .pv-card:nth-child(3) .pv-card-img { background: #ddd; }
+
+/* ─── 4. 野兽派 Brutalism ─── */
+.brutal-preview {
+  --c-bg: #ffe600; --c-surface: #fff; --c-text: #111; --c-muted: #666;
+  --c-border: #111; --c-primary: #111;
+  --c-body: 'Inter', sans-serif; --c-display: 'Impact', sans-serif;
+}
+.brutal-preview .pv-sb, .brutal-preview .pv-card, .brutal-preview .pv-stat, .brutal-preview .pv-hero { border-radius: 0; border-width: 2px; }
+.brutal-preview .pv-stat { background: #fff; border: 2px solid #111; }
+.brutal-preview .pv-stat-val { color: #111; font-family: 'Impact', sans-serif; }
+.brutal-preview .pv-stat-lbl { color: #666; }
+.brutal-preview .pv-hero { background: #111; color: #ffe600; }
+.brutal-preview .pv-btn-primary { background: #ffe600; color: #111; border-radius: 0; font-family: Impact, sans-serif; }
+.brutal-preview .pv-btn-secondary { border: 2px solid #ffe600; color: #ffe600; border-radius: 0; }
+.brutal-preview .pv-btn-ghost { color: rgba(255,230,0,.5); }
+.brutal-preview .pv-card-img { border-radius: 0; background: #111; }
+
+/* ─── 5. 赛博朋克 Cyberpunk ─── */
+.cyber-preview {
+  --c-bg: #0a0a0f; --c-surface: rgba(0,255,255,.03); --c-text: rgba(0,255,255,.8);
+  --c-muted: rgba(0,255,255,.35); --c-border: rgba(0,255,255,.08);
+  --c-primary: rgba(0,255,255,.06);
+  --c-body: 'Courier New', monospace; --c-display: 'Orbitron', sans-serif;
+}
+.cyber-preview::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,255,.025) 2px, rgba(0,255,255,.025) 4px); }
+.cyber-preview .pv, .cyber-preview .pv-sb, .cyber-preview .pv-body, .cyber-preview .pv-hero, .cyber-preview .pv-card, .cyber-preview .pv-stat { position: relative; z-index: 1; }
+.cyber-preview .pv-stat { background: rgba(0,255,255,.03); border: 1px solid rgba(0,255,255,.08); }
+.cyber-preview .pv-stat-val { color: #0ff; text-shadow: 0 0 6px rgba(0,255,255,.25); font-family: 'Orbitron', sans-serif; }
+.cyber-preview .pv-stat-lbl { color: rgba(0,255,255,.35); letter-spacing: .12em; }
+.cyber-preview .pv-hero { background: var(--c-primary); border: 1px solid rgba(0,255,255,.12); color: #0ff; }
+.cyber-preview .pv-btn-primary { background: transparent; border: 1px solid #0ff; color: #0ff; box-shadow: 0 0 4px rgba(0,255,255,.2); }
+.cyber-preview .pv-btn-secondary { border: 1px solid #ff00aa; color: #ff00aa; box-shadow: 0 0 4px rgba(255,0,170,.12); }
+.cyber-preview .pv-btn-ghost { color: rgba(0,255,255,.3); }
+.cyber-preview .pv-card-img { background: rgba(0,255,255,.04); }
+.cyber-preview .pv-card:nth-child(2) .pv-card-img { background: rgba(255,0,170,.06); }
+.cyber-preview .pv-card:nth-child(3) .pv-card-img { background: rgba(0,255,255,.04); }
+
+/* ─── 6. Material Design ─── */
+.material-preview {
+  --c-bg: #f5f5f5; --c-surface: #fff; --c-text: #333; --c-muted: #888;
+  --c-border: #e0e0e0; --c-primary: #1976d2;
+  --c-body: Roboto, sans-serif; --c-display: Roboto, sans-serif;
+}
+.material-preview .pv-stat { background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.06); border: none; }
+.material-preview .pv-stat-val { color: #1976d2; }
+.material-preview .pv-stat-lbl { color: #888; }
+.material-preview .pv-card { border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04); border: none; }
+.material-preview .pv-hero { background: #1976d2; color: #fff; border-radius: 6px; }
+.material-preview .pv-btn-primary { background: #fff; color: #1976d2; text-transform: uppercase; letter-spacing: .3px; }
+.material-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.35); color: #fff; }
+.material-preview .pv-btn-ghost { color: rgba(255,255,255,.45); }
+.material-preview .pv-card-img { border-radius: 6px 6px 0 0; background: #f0f0f0; color: #555; }
+.material-preview .pv-card:nth-child(2) .pv-card-img { background: #e3f2fd; }
+.material-preview .pv-card:nth-child(3) .pv-card-img { background: #f0f0f0; }
+
+/* ─── 7. 像素复古 Pixel Retro ─── */
+.retro-preview {
+  --c-bg: #1a1a2e; --c-surface: #16213e; --c-text: #e0e0e0; --c-muted: #7a7aaa;
+  --c-border: #533483; --c-primary: #e94560;
+  --c-body: 'Courier New', monospace; --c-display: 'Press Start 2P', 'Courier New', monospace;
+}
+.retro-preview .pv-sb { border-right-width: 2px; }
+.retro-preview .pv-stat { background: #16213e; border: 2px solid #533483; border-radius: 0; }
+.retro-preview .pv-stat-val { color: #e94560; font-family: 'Press Start 2P', 'Courier New', monospace; font-size: 26px; text-shadow: 2px 2px 0 #0f3460; }
+.retro-preview .pv-stat-lbl { color: #7a7aaa; letter-spacing: .15em; }
+.retro-preview .pv-card, .retro-preview .pv-hero { border-radius: 0; border-width: 2px; }
+.retro-preview .pv-card-img { border-radius: 0; background: #533483; color: #e94560; }
+.retro-preview .pv-card:nth-child(2) .pv-card-img { background: #e94560; color: #fff; }
+.retro-preview .pv-card:nth-child(3) .pv-card-img { background: #0f3460; color: #a0d0ff; }
+.retro-preview .pv-hero { background: #16213e; color: #e94560; border-color: #e94560; }
+.retro-preview .pv-btn-primary { background: #e94560; color: #fff; border-radius: 0; box-shadow: 1px 1px 0 #0f3460; }
+.retro-preview .pv-btn-secondary { border: 2px solid #e94560; color: #e94560; border-radius: 0; }
+.retro-preview .pv-btn-ghost { color: #533483; }
+.retro-preview .pv-card-btn { border-radius: 0; }
+
+/* ─── 8. 国际排版 Swiss Style ─── */
+.swiss-preview {
+  --c-bg: #fff; --c-surface: #f8f8f8; --c-text: #222; --c-muted: #888;
+  --c-border: #ddd; --c-primary: #da291c;
+  --c-body: Helvetica, Arial, sans-serif; --c-display: Helvetica, sans-serif;
+}
+.swiss-preview .pv-stat { background: #f8f8f8; border: 1px solid #ddd; border-radius: 0; }
+.swiss-preview .pv-stat-val { color: #da291c; }
+.swiss-preview .pv-stat-lbl { color: #888; }
+.swiss-preview .pv-card, .swiss-preview .pv-hero { border-radius: 0; }
+.swiss-preview .pv-card-img { border-radius: 0; background: #da291c; color: #fff; font-weight: 700; }
+.swiss-preview .pv-card:nth-child(2) .pv-card-img { background: #da291c; }
+.swiss-preview .pv-card:nth-child(3) .pv-card-img { background: #333; }
+.swiss-preview .pv-hero { background: #111; color: #fff; }
+.swiss-preview .pv-btn-primary { background: #da291c; color: #fff; border-radius: 0; text-transform: uppercase; letter-spacing: .5px; }
+.swiss-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.35); color: #fff; border-radius: 0; }
+.swiss-preview .pv-btn-ghost { color: rgba(255,255,255,.35); }
+
+/* ─── 9. 拟真 Skeuomorphism ─── */
+.skeu-preview {
+  --c-bg: #d4a86a; --c-surface: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+  --c-text: #4a3a20; --c-muted: rgba(74,58,32,.55);
+  --c-border: rgba(0,0,0,.1); --c-primary: #8b6b3c;
+  --c-body: 'Georgia', serif; --c-display: 'Georgia', serif;
+}
+.skeu-preview .pv-stat { border-radius: 3px; }
+.skeu-preview .pv-stat-val { color: #f0e0c0; font-family: 'Georgia', serif; font-weight: 700; text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+.skeu-preview .pv-stat-lbl { color: rgba(240,224,192,.5); }
+.skeu-preview .pv-card, .skeu-preview .pv-stat, .skeu-preview .pv-hero { box-shadow: 0 1px 3px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.15); }
+.skeu-preview .pv-card-img { background: linear-gradient(180deg, #c49530, #8a6a20); color: #f0e0c0; }
+.skeu-preview .pv-card:nth-child(2) .pv-card-img { background: linear-gradient(180deg, #7a5a3a, #5a3a1a); }
+.skeu-preview .pv-card:nth-child(3) .pv-card-img { background: linear-gradient(180deg, #c49530, #8a6a20); }
+.skeu-preview .pv-hero { background: linear-gradient(180deg, #8b6b3c, #6d4f2a); color: #f0e0c0; border: 1px solid #a07840; }
+.skeu-preview .pv-btn-primary { background: linear-gradient(180deg, #f0e6d0, #d4c4a0, #b8a880); color: #4a3a20; border: 1px solid #8a7a60; box-shadow: 0 1px 2px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.3); }
+.skeu-preview .pv-btn-secondary { border: 1px solid rgba(240,224,192,.25); color: #f0e0c0; }
+.skeu-preview .pv-btn-ghost { color: rgba(240,224,192,.35); }
+.skeu-preview .pv-card-btn { background: linear-gradient(180deg, #f0e6d0, #d4c4a0); border: 1px solid #8a7a60; color: #4a3a20; }
+
+/* ─── 10. 极光 Aurora ─── */
+.aurora-preview {
+  --c-bg: transparent; --c-surface: rgba(255,255,255,.06); --c-text: rgba(255,255,255,.85);
+  --c-muted: rgba(255,255,255,.45); --c-border: rgba(255,255,255,.08);
+  --c-primary: rgba(255,255,255,.1);
+  --c-body: 'Inter', sans-serif; --c-display: 'Playfair Display', serif;
+  background: linear-gradient(135deg, #00d2ff, #3a7bd5, #8e44ad, #e74c3c, #f39c12);
+  background-size: 200% 200%;
+  animation: aurora 6s ease infinite;
+}
+@keyframes aurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.aurora-preview .pv-sb, .aurora-preview .pv-card, .aurora-preview .pv-stat, .aurora-preview .pv-hero { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.aurora-preview .pv-stat { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.06); }
+.aurora-preview .pv-stat-val { color: #fff; }
+.aurora-preview .pv-stat-lbl { color: rgba(255,255,255,.4); }
+.aurora-preview .pv-hero { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.06); color: #fff; }
+.aurora-preview .pv-btn-primary { background: rgba(255,255,255,.16); color: #fff; }
+.aurora-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.2); color: #fff; }
+.aurora-preview .pv-btn-ghost { color: rgba(255,255,255,.3); }
+.aurora-preview .pv-card-img { background: rgba(255,255,255,.08); }
+.aurora-preview .pv-card:nth-child(2) .pv-card-img { background: rgba(255,255,255,.12); }
+.aurora-preview .pv-card:nth-child(3) .pv-card-img { background: rgba(255,255,255,.08); }
+
+/* ─── 11. 孟菲斯 Memphis ─── */
+.memphis-preview {
+  --c-bg: #f8f6f0; --c-surface: #fff; --c-text: #1a1a1a; --c-muted: #888;
+  --c-border: #e0dcd4; --c-primary: #ff2d55;
+  --c-body: 'Inter', sans-serif; --c-display: 'Futura', 'Inter', sans-serif;
+}
+.memphis-preview .pv-sb, .memphis-preview .pv-card, .memphis-preview .pv-stat { border-width: 2px; border-color: #1a1a1a; }
+.memphis-preview .pv-hero { background: #ff2d55; color: #fff; border: 2px solid #1a1a1a; box-shadow: 4px 4px 0 rgba(0,0,0,.1); }
+.memphis-preview .pv-btn-primary { background: #fff; color: #ff2d55; border: 2px solid #1a1a1a; font-weight: 800; text-transform: uppercase; }
+.memphis-preview .pv-btn-secondary { border: 2px solid rgba(255,255,255,.5); color: #fff; }
+.memphis-preview .pv-btn-ghost { color: rgba(255,255,255,.5); }
+.memphis-preview .pv-card-img { background: #0088ff; }
+.memphis-preview .pv-card:nth-child(2) .pv-card-img { background: #ffd700; color: #1a1a1a; }
+.memphis-preview .pv-card:nth-child(3) .pv-card-img { background: #ff2d55; }
+.memphis-preview .pv-stat { background: #fff; border: 2px solid #1a1a1a; }
+.memphis-preview .pv-stat-val { color: #1a1a1a; font-family: 'Futura', 'Inter', sans-serif; }
+.memphis-preview .pv-stat-lbl { color: #888; }
+
+/* ─── 12. 蒸汽波 Vaporwave ─── */
+.vaporwave-preview {
+  --c-bg: #1a0033; --c-surface: #2a0048; --c-text: #e0c0ff; --c-muted: #8866aa;
+  --c-border: #440066; --c-primary: #ff66cc;
+  --c-body: 'Share Tech Mono', monospace; --c-display: 'Press Start 2P', monospace;
+}
+.vaporwave-preview .pv-sb { border-right-color: #ff66cc; }
+.vaporwave-preview .pv-hero { background: linear-gradient(135deg, #ff66cc, #00ffff); color: #1a0033; }
+.vaporwave-preview .pv-btn-primary { background: #1a0033; color: #ff66cc; }
+.vaporwave-preview .pv-btn-secondary { border: 1px solid rgba(26,0,51,.4); color: #1a0033; }
+.vaporwave-preview .pv-btn-ghost { color: rgba(26,0,51,.4); }
+.vaporwave-preview .pv-card-img { background: #ff66cc; color: #1a0033; }
+.vaporwave-preview .pv-card:nth-child(2) .pv-card-img { background: #00ffff; color: #1a0033; }
+.vaporwave-preview .pv-card:nth-child(3) .pv-card-img { background: #aa66ff; color: #1a0033; }
+.vaporwave-preview .pv-stat { background: #2a0048; border: 1px solid #6600aa; }
+.vaporwave-preview .pv-stat-val { color: #ff66cc; font-family: 'Press Start 2P', monospace; font-size: 22px; text-shadow: 2px 2px 0 #1a0033; }
+.vaporwave-preview .pv-stat-lbl { color: #8866aa; letter-spacing: .15em; }
+
+/* ─── 13. Fluent Design ─── */
+.fluent-preview {
+  --c-bg: #f3f3f3; --c-surface: rgba(255,255,255,.8); --c-text: #1a1a1a; --c-muted: #666;
+  --c-border: rgba(0,0,0,.1); --c-primary: #0078d4;
+  --c-body: 'Inter', sans-serif; --c-display: 'Inter', sans-serif;
+}
+.fluent-preview .pv-sb, .fluent-preview .pv-card, .fluent-preview .pv-stat, .fluent-preview .pv-hero { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.fluent-preview .pv-hero { background: linear-gradient(135deg, #0078d4, #005a9e); color: #fff; }
+.fluent-preview .pv-btn-primary { background: #fff; color: #0078d4; }
+.fluent-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.35); color: #fff; }
+.fluent-preview .pv-btn-ghost { color: rgba(255,255,255,.4); }
+.fluent-preview .pv-card-img { background: #0078d4; }
+.fluent-preview .pv-card:nth-child(2) .pv-card-img { background: #005a9e; }
+.fluent-preview .pv-card:nth-child(3) .pv-card-img { background: #0078d4; }
+.fluent-preview .pv-stat { background: rgba(255,255,255,.7); border: none; box-shadow: 0 1px 3px rgba(0,0,0,.06); border-radius: 4px; }
+.fluent-preview .pv-stat-val { color: #0078d4; }
+.fluent-preview .pv-stat-lbl { color: #666; }
+
+/* ─── 14. 酸性设计 Acid ─── */
+.acid-preview {
+  --c-bg: #0d0d0d; --c-surface: #1a1a1a; --c-text: #e0e0e0; --c-muted: #666;
+  --c-border: #333; --c-primary: #00ff41;
+  --c-body: 'Space Grotesk', sans-serif; --c-display: 'Anton', sans-serif;
+}
+.acid-preview .pv-hero { background: #1a1a1a; color: #00ff41; border: 2px solid #00ff41; }
+.acid-preview .pv-btn-primary { background: #00ff41; color: #0d0d0d; border: 2px solid #00ff41; letter-spacing: 2px; }
+.acid-preview .pv-btn-secondary { border: 1px solid #ff0080; color: #ff0080; }
+.acid-preview .pv-btn-ghost { color: rgba(0,255,65,.4); }
+.acid-preview .pv-card-img { background: #00ff41; color: #0d0d0d; }
+.acid-preview .pv-card:nth-child(2) .pv-card-img { background: #ff0080; color: #0d0d0d; }
+.acid-preview .pv-card:nth-child(3) .pv-card-img { background: #222; color: #00ff41; }
+.acid-preview .pv-stat { background: #1a1a1a; border: 1px solid #333; }
+.acid-preview .pv-stat-val { color: #00ff41; text-shadow: 0 0 8px rgba(0,255,65,.25); font-family: 'Anton', sans-serif; }
+.acid-preview .pv-stat-lbl { color: #666; letter-spacing: .12em; }
+
+/* ─── 15. 波普艺术 Pop Art ─── */
+.popart-preview {
+  --c-bg: #ffff00; --c-surface: #fff; --c-text: #111; --c-muted: #666;
+  --c-border: #111; --c-primary: #ff0000;
+  --c-body: 'Inter', sans-serif; --c-display: 'Bangers', cursive;
+}
+.popart-preview .pv-sb, .popart-preview .pv-card, .popart-preview .pv-stat, .popart-preview .pv-hero { border-width: 2px; border-radius: 0; }
+.popart-preview .pv-hero { background: #ff0000; color: #fff; border: 3px solid #111; box-shadow: 3px 3px 0 #111; }
+.popart-preview .pv-btn-primary { background: #fff; color: #ff0000; border: 2px solid #111; box-shadow: 2px 2px 0 #111; font-weight: 800; }
+.popart-preview .pv-btn-secondary { border: 2px solid #fff; color: #fff; }
+.popart-preview .pv-btn-ghost { color: rgba(255,255,255,.5); }
+.popart-preview .pv-card-img { background: #ff0000; color: #fff; }
+.popart-preview .pv-card:nth-child(2) .pv-card-img { background: #00ccff; color: #111; }
+.popart-preview .pv-card:nth-child(3) .pv-card-img { background: #ffcc00; color: #111; }
+.popart-preview .pv-stat { background: #fff; border: 2px solid #111; }
+.popart-preview .pv-stat-val { color: #ff0000; font-family: 'Bangers', cursive; }
+.popart-preview .pv-stat-lbl { color: #666; }
+
+/* ─── 16. 侘寂 Wabi-sabi ─── */
+.wabi-preview {
+  --c-bg: #f5f0e8; --c-surface: #faf6ef; --c-text: #3d3229; --c-muted: #9a8a7a;
+  --c-border: #e0d8cc; --c-primary: #c4956a;
+  --c-body: 'Zen Maru Gothic', sans-serif; --c-display: 'Noto Serif JP', serif;
+}
+.wabi-preview .pv-hero { background: linear-gradient(135deg, #c4956a, #b0805a); color: #fff; border-radius: 8px; }
+.wabi-preview .pv-btn-primary { background: #fff; color: #c4956a; border-radius: 30px; }
+.wabi-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.35); color: #fff; }
+.wabi-preview .pv-btn-ghost { color: rgba(255,255,255,.4); }
+.wabi-preview .pv-card-img { background: #c4956a; color: #fff; }
+.wabi-preview .pv-card:nth-child(2) .pv-card-img { background: #8fa88f; }
+.wabi-preview .pv-card:nth-child(3) .pv-card-img { background: #b0805a; }
+.wabi-preview .pv-stat { background: #faf6ef; border: 1px solid #e0d8cc; border-radius: 8px; }
+.wabi-preview .pv-stat-val { color: #c4956a; font-family: 'Noto Serif JP', serif; }
+.wabi-preview .pv-stat-lbl { color: #9a8a7a; }
+
+/* ─── 17. Bento UI ─── */
+.bento-preview {
+  --c-bg: #f8f9fa; --c-surface: #fff; --c-text: #2d3436; --c-muted: #888;
+  --c-border: #e8eaed; --c-primary: #6c63ff;
+  --c-body: 'Inter', sans-serif; --c-display: 'Inter', sans-serif;
+}
+.bento-preview .pv-card, .bento-preview .pv-stat, .bento-preview .pv-hero { border: none; box-shadow: 0 2px 6px rgba(0,0,0,.04); border-radius: 8px; }
+.bento-preview .pv-hero { background: linear-gradient(135deg, #6c63ff, #a29bfe); color: #fff; }
+.bento-preview .pv-btn-primary { background: #fff; color: #6c63ff; box-shadow: 0 2px 6px rgba(108,99,255,.15); }
+.bento-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.35); color: #fff; }
+.bento-preview .pv-btn-ghost { color: rgba(255,255,255,.4); }
+.bento-preview .pv-card-img { background: #6c63ff; border-radius: 8px 8px 0 0; }
+.bento-preview .pv-card:nth-child(2) .pv-card-img { background: #a29bfe; }
+.bento-preview .pv-card:nth-child(3) .pv-card-img { background: #ff6b9d; }
+.bento-preview .pv-stat { background: #fff; }
+.bento-preview .pv-stat-val { color: #6c63ff; }
+.bento-preview .pv-stat-lbl { color: #888; }
+
+/* ─── 18. 粘土风 Claymorphism ─── */
+.clay-preview {
+  --c-bg: #fff8e7; --c-surface: #fff; --c-text: #2d2d2d; --c-muted: #999;
+  --c-border: #e8ddd0; --c-primary: #ff8a5c;
+  --c-body: 'Nunito', sans-serif; --c-display: 'Nunito', sans-serif;
+}
+.clay-preview .pv-card, .clay-preview .pv-stat, .clay-preview .pv-hero { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,.05), inset 0 -2px 0 rgba(0,0,0,.03); }
+.clay-preview .pv-sb { border-right: none; box-shadow: 2px 0 8px rgba(0,0,0,.03); }
+.clay-preview .pv-hero { background: linear-gradient(135deg, #ff8a5c, #ff6b3d); color: #fff; border-radius: 14px; }
+.clay-preview .pv-btn-primary { background: #fff; color: #ff8a5c; border-radius: 30px; box-shadow: 0 3px 8px rgba(255,138,92,.15), inset 0 -2px 0 rgba(0,0,0,.04); font-weight: 800; }
+.clay-preview .pv-btn-secondary { border: 1px solid rgba(255,255,255,.3); color: #fff; }
+.clay-preview .pv-btn-ghost { color: rgba(255,255,255,.35); }
+.clay-preview .pv-card-img { background: #ff8a5c; color: #fff; border-radius: 12px 12px 0 0; }
+.clay-preview .pv-card:nth-child(2) .pv-card-img { background: #74b9ff; }
+.clay-preview .pv-card:nth-child(3) .pv-card-img { background: #ffb347; }
+.clay-preview .pv-stat { background: #fff; }
+.clay-preview .pv-stat-val { color: #ff8a5c; font-weight: 900; }
+.clay-preview .pv-stat-lbl { color: #999; }
+
+.footer { text-align: center; margin-top: 70px; opacity: .5; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>20 种 HTML UI 风格模板</h1>
+  <p class="subtitle">20 种 UI 风格 · 同一套内容 · 迥异视觉语言</p>
+
+  <div class="grid">
+    <script>
+      const styles = [
+        { cls:"techdocs-preview",  name:"技术文档",   href:"techdocs-yolo.html" },
+        { cls:"dashboard-preview", name:"数据看板",   href:"dashboard-yolo.html" },
+        { cls:"minimal-preview",  name:"极简主义",   href:"minimal-yolo.html" },
+        { cls:"glass-preview",    name:"玻璃拟态",   href:"glass-yolo.html" },
+        { cls:"neu-preview",      name:"新拟物",     href:"neu-yolo.html" },
+        { cls:"brutal-preview",   name:"野兽派",     href:"brutal-yolo.html" },
+        { cls:"cyber-preview",    name:"赛博朋克",   href:"cyber-yolo.html" },
+        { cls:"material-preview", name:"材质设计",     href:"material-yolo.html" },
+        { cls:"retro-preview",    name:"像素复古",   href:"retro-yolo.html" },
+        { cls:"swiss-preview",    name:"国际排版",   href:"swiss-yolo.html" },
+        { cls:"skeu-preview",     name:"拟真风格",   href:"skeu-yolo.html" },
+        { cls:"aurora-preview",   name:"极光渐变",   href:"aurora-yolo.html" },
+        { cls:"memphis-preview",  name:"孟菲斯",     href:"memphis-yolo.html" },
+        { cls:"vaporwave-preview",name:"蒸汽波",     href:"vaporwave-yolo.html" },
+        { cls:"fluent-preview",   name:"流畅设计",   href:"fluent-yolo.html" },
+        { cls:"acid-preview",     name:"酸性设计",   href:"acid-yolo.html" },
+        { cls:"popart-preview",   name:"波普艺术",   href:"popart-yolo.html" },
+        { cls:"wabi-preview",     name:"侘寂",       href:"wabi-yolo.html" },
+        { cls:"bento-preview",    name:"便当盒",     href:"bento-yolo.html" },
+        { cls:"clay-preview",     name:"粘土风",     href:"clay-yolo.html" },
+      ];
+      const cards = [
+        {img:"🚀", title:"YOLOv5", text:"Ultralytics 重写，Python-first 工程化", btn:"文档"},
+        {img:"⚡", title:"YOLOv8", text:"Anchor-free 检测头，统一框架四项任务",   btn:"使用"},
+        {img:"🎯", title:"YOLOv10",text:"消除 NMS 后处理，端到端推理延迟更低",    btn:"论文"},
+      ];
+      const stats = [
+        {val:"54.4", lbl:"mAP"},
+        {val:"161",  lbl:"FPS"},
+        {val:"6.2M", lbl:"参数量"},
+        {val:"10+",  lbl:"版本"},
+      ];
+      let html = "";
+      for (const s of styles) {
+        html += `<a href="${s.href}" class="card"><div class="card-preview ${s.cls}"><div class="pv"><div class="pv-sb">`;
+        html += `<div class="pv-sb-brand"></div><div class="pv-sb-divider"></div>`;
+        for (let i=0;i<3;i++) html += `<div class="pv-sb-dot"></div>`;
+        html += `<div class="pv-sb-divider"></div>`;
+        for (let i=0;i<4;i++) html += `<div class="pv-sb-dot"></div>`;
+        html += `</div><div class="pv-body"><div class="pv-cards">`;
+        for (const c of cards) {
+          html += `<div class="pv-card"><div class="pv-card-img">${c.img}</div><div class="pv-card-body">`;
+          html += `<div class="pv-card-title">${c.title}</div><div class="pv-card-text">${c.text}</div>`;
+          html += `<div class="pv-card-btn">${c.btn}</div></div></div>`;
+        }
+        html += `</div><div class="pv-stats">`;
+        for (const st of stats) {
+          html += `<div class="pv-stat"><span class="pv-stat-val">${st.val}</span><span class="pv-stat-lbl">${st.lbl}</span></div>`;
+        }
+        html += `</div><div class="pv-hero"><div class="pv-hero-tag">目标检测 · 2015 — 2024 · 10+ 版本迭代</div>`;
+        html += `<div class="pv-hero-title">You Only Look Once</div>`;
+        html += `<div class="pv-hero-actions"><span class="pv-btn-primary">▶ 运行推理</span><span class="pv-btn-secondary">↗ 查看论文</span><span class="pv-btn-ghost">⤓ 权重</span>`;
+        html += `<span class="pv-hero-style">${s.name} <span class="arr">→</span></span></div></div></div></div></div></a>`;
+      }
+      document.write(html);
+    </script>
+  </div>
+
+  <div class="footer"><p>每种风格包含完整的 YOLO 目标检测内容 · 导航 · 表单 · 图表 · 交互控件 · 响应式布局</p></div>
+</div>
+</body>
+</html>

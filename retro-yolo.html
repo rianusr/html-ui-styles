@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOLO · 实时目标检测发展全景 [PIXEL RETRO]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── THEME VARIABLES ── */
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface-alt: #1e2a4a;
+  --text: #eaeaea;
+  --text-muted: #7a7a9a;
+  --border: #0f3460;
+  --hover-bg: #1e2a4a;
+  --primary: #e94560;
+  --primary-text: #fff;
+  --accent: #0f3460;
+  --success: #53d769;
+  --danger: #e94560;
+  --warning: #ffd700;
+  --radius: 0px;
+  --radius-sm: 0px;
+  --shadow: none;
+  --shadow-hover: none;
+  --btn-shadow: none;
+  --focus-ring: rgba(233,69,96,.35);
+  --input-bg: #0a0a1a;
+  --input-border: 2px solid #0f3460;
+  --info-bg: #0a1a2e;    --info-text: #53d769;    --info-border: #0f3460;
+  --success-bg: #0a1a0a; --success-text: #53d769; --success-border: #53d769;
+  --warn-bg: #1a1a0a;    --warn-text: #ffd700;    --warn-border: #ffd700;
+  --error-bg: #1a0a0a;   --error-text: #e94560;   --error-border: #e94560;
+  --code-bg: #0a0a0a;    --code-text: #53d769;    --code-border: #53d769;
+  --tooltip-bg: #0a0a0a; --tooltip-text: #53d769;
+  --stripe-bg: #12122a;
+  --modal-bg: #16213e;
+  --sidebar-w: 260px;
+  --display-font: 'Press Start 2P', cursive, monospace;
+  --body-font: 'VT323', monospace;
+}
+
+/* ── CRT SCANLINE OVERLAY ── */
+body::after {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,.07) 2px,
+    rgba(0,0,0,.07) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── BLINKING CURSOR ── */
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ── LAYOUT ── */
+body {
+  font-family: var(--body-font); background: var(--bg); color: var(--text);
+  min-height: 100vh; display: flex; font-size: 18px; line-height: 1.5;
+  image-rendering: auto;
+}
+
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0;
+  background: var(--surface); border-right: 2px solid var(--primary);
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent; z-index: 200; display: flex; flex-direction: column;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--primary); }
+
+.sidebar-brand { padding: 28px 24px 20px; border-bottom: 2px solid var(--border); flex-shrink: 0; }
+.sidebar-brand-name { font-family: var(--display-font); font-size: 14px; font-weight: 700; color: var(--primary); display: block; margin-bottom: 8px; }
+.sidebar-brand-sub { font-size: 16px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); font-family: var(--body-font); }
+
+.sidebar-nav { padding: 20px 0 40px; flex: 1; }
+.sidebar-group-title { font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--warning); padding: 18px 24px 8px; font-family: var(--body-font); }
+.sidebar-link {
+  display: flex; align-items: center; gap: 10px; padding: 10px 24px;
+  font-size: 18px; color: var(--text-muted); text-decoration: none; cursor: pointer;
+  transition: background .15s, color .15s; border-left: 2px solid transparent; line-height: 1.4;
+  font-family: var(--body-font);
+}
+.sidebar-link:hover { background: var(--hover-bg); color: var(--text); }
+.sidebar-link.active { color: var(--primary); border-left-color: var(--primary); background: var(--hover-bg); font-weight: 700; }
+.sidebar-link .sl-icon { font-size: 14px; flex-shrink: 0; opacity: .7; }
+
+.main-content { margin-left: var(--sidebar-w); flex: 1; min-width: 0; }
+.showcase { max-width: 1600px; margin: 0 auto; padding: 48px 48px 120px; }
+
+/* ── SECTION HEADING ── */
+.sc-section { margin-bottom: 72px; scroll-margin-top: 32px; }
+.sc-label {
+  font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 26px; padding-bottom: 14px;
+  border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 10px;
+  font-family: var(--body-font);
+}
+.sc-label::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--primary); flex-shrink: 0; }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  background: var(--surface); border: 2px solid var(--primary); padding: 14px 22px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 36px; box-shadow: 4px 4px 0 0 var(--accent); flex-wrap: wrap; gap: 12px;
+}
+.ph-brand { font-family: var(--display-font); font-weight: 700; font-size: 14px; color: var(--text); }
+.ph-brand em { color: var(--primary); font-style: normal; }
+.ph-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.ph-link {
+  font-size: 18px; color: var(--text-muted); text-decoration: none; padding: 9px 16px;
+  border: 2px solid transparent; cursor: pointer; font-family: var(--body-font); background: transparent; transition: background .2s, color .2s;
+}
+.ph-link:hover { background: var(--hover-bg); color: var(--text); }
+.ph-link.active { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+
+/* ── BREADCRUMB ── */
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 18px; color: var(--text-muted); margin-bottom: 40px; flex-wrap: wrap; }
+.breadcrumb a { color: var(--primary); text-decoration: none; cursor: pointer; }
+.breadcrumb a:hover { text-decoration: underline; }
+.bc-sep { color: var(--text-muted); font-size: 14px; }
+.breadcrumb span { color: var(--text); }
+
+/* ── HERO (retro terminal style) ── */
+.hero {
+  background: var(--surface); color: var(--text); padding: 72px 64px 64px; margin-bottom: 60px;
+  position: relative; overflow: hidden; border: 2px solid var(--primary);
+  box-shadow: 6px 6px 0 0 var(--accent);
+}
+.hero::before {
+  content: '●  ●  ●'; position: absolute; top: 0; left: 0; right: 0;
+  padding: 10px 18px; background: #0a0a0a; color: var(--primary);
+  font-size: 11px; letter-spacing: 6px; font-family: var(--body-font);
+  border-bottom: 2px solid var(--primary);
+}
+.hero::after {
+  content: ''; position: absolute; right: -40px; top: 40px; width: 320px; height: 320px;
+  border: 2px solid rgba(233,69,96,.12); pointer-events: none;
+}
+.hero-tag { font-size: 16px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 20px; margin-top: 24px; font-family: var(--body-font); }
+.hero-title { font-family: var(--display-font); font-size: clamp(20px,3.5vw,36px); font-weight: 700; line-height: 1.6; margin-bottom: 20px; color: var(--primary); }
+.hero-subtitle { font-size: 20px; opacity: .85; line-height: 1.8; max-width: 700px; margin-bottom: 36px; color: var(--text); }
+.hero-subtitle::after { content: '█'; animation: blink 1s step-end infinite; color: var(--primary); margin-left: 4px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ── STAT CARDS (retro terminal with scanlines) ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 2px; background: var(--border); border: 2px solid var(--primary); }
+.stat-card {
+  background: var(--surface); padding: 32px 28px; transition: background .2s;
+  position: relative; overflow: hidden;
+}
+.stat-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,.04) 1px, rgba(0,0,0,.04) 2px);
+  pointer-events: none;
+}
+.stat-card:hover { background: var(--hover-bg); }
+.stat-lbl { font-size: 16px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; font-family: var(--body-font); }
+.stat-val { font-family: var(--display-font); font-size: 28px; font-weight: 700; color: var(--primary); line-height: 1; margin-bottom: 10px; }
+.stat-chg { font-size: 18px; display: flex; align-items: center; gap: 4px; font-family: var(--body-font); }
+.up { color: var(--success); }
+.dn { color: var(--danger); }
+
+/* ── DIVIDER ── */
+hr.divider { border: none; border-top: 2px dashed var(--border); margin: 52px 0; }
+
+/* ── BUTTONS (pixel-style) ── */
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 12px 26px;
+  font-size: 18px; font-weight: 600; font-family: var(--body-font); cursor: pointer;
+  transition: all .1s; border: 2px solid; line-height: 1; text-decoration: none;
+  white-space: nowrap; letter-spacing: .03em; background: transparent; border-radius: 0;
+  image-rendering: pixelated;
+}
+.btn:active { transform: scale(.98); }
+.btn-primary {
+  background: var(--primary); color: var(--primary-text); border-color: var(--primary);
+  box-shadow: inset -2px -2px 0 0 rgba(0,0,0,.3), inset 2px 2px 0 0 rgba(255,255,255,.15), 4px 4px 0 0 #0a0a0a;
+}
+.btn-primary:hover { background: var(--primary-text); color: var(--primary); box-shadow: inset 2px 2px 0 0 rgba(0,0,0,.1), 4px 4px 0 0 #0a0a0a; }
+.btn-secondary {
+  color: var(--primary); border-color: var(--primary);
+  box-shadow: 4px 4px 0 0 #0a0a0a;
+}
+.btn-secondary:hover { background: var(--primary); color: var(--primary-text); }
+.btn-ghost {
+  color: var(--text-muted); border-color: var(--border);
+  box-shadow: 4px 4px 0 0 #0a0a0a;
+}
+.btn-ghost:hover { background: var(--hover-bg); color: var(--text); }
+.btn-danger {
+  background: var(--danger); color: #fff; border-color: var(--danger);
+  box-shadow: inset -2px -2px 0 0 rgba(0,0,0,.3), inset 2px 2px 0 0 rgba(255,255,255,.15), 4px 4px 0 0 #0a0a0a;
+}
+.btn-danger:hover { background: #fff; color: var(--danger); }
+.btn-success {
+  background: var(--success); color: #0a0a0a; border-color: var(--success);
+  box-shadow: inset -2px -2px 0 0 rgba(0,0,0,.3), inset 2px 2px 0 0 rgba(255,255,255,.15), 4px 4px 0 0 #0a0a0a;
+}
+.btn-success:hover { background: #0a0a0a; color: var(--success); }
+.btn-accent {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  box-shadow: inset -2px -2px 0 0 rgba(0,0,0,.3), inset 2px 2px 0 0 rgba(255,255,255,.15), 4px 4px 0 0 #0a0a0a;
+}
+.btn-accent:hover { background: #fff; color: var(--accent); }
+.btn-sm  { padding: 8px 16px;  font-size: 16px; }
+.btn-lg  { padding: 16px 36px; font-size: 20px; }
+.btn-xl  { padding: 20px 44px; font-size: 22px; }
+.btn-icon { padding: 10px; width: 42px; height: 42px; justify-content: center; }
+.btn[disabled] { opacity: .38; cursor: not-allowed; pointer-events: none; }
+
+/* ── FORM ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+@media (max-width:640px) { .form-grid { grid-template-columns: 1fr; } }
+.form-full { grid-column: 1 / -1; }
+.form-group { display: flex; flex-direction: column; gap: 7px; }
+.form-lbl { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: .04em; font-family: var(--body-font); }
+.form-input {
+  padding: 12px 16px; border: var(--input-border); background: var(--input-bg); color: var(--text);
+  font-size: 18px; font-family: var(--body-font); outline: none; width: 100%; transition: border-color .2s, box-shadow .2s;
+  border-radius: 0;
+}
+.form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus-ring); }
+.form-input::placeholder { color: var(--text-muted); opacity: .6; }
+textarea.form-input { resize: vertical; min-height: 88px; }
+select.form-input { cursor: pointer; }
+.form-hint { font-size: 16px; color: var(--text-muted); font-family: var(--body-font); }
+.checks-row { display: flex; gap: 22px; flex-wrap: wrap; }
+.form-check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 18px; color: var(--text); font-family: var(--body-font); }
+.form-check input { width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; }
+.toggle-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.toggle-input { display: none; }
+.toggle-slider { width: 42px; height: 24px; background: var(--border); border-radius: 0; position: relative; transition: background .25s; flex-shrink: 0; }
+.toggle-slider::after { content: ''; position: absolute; width: 18px; height: 18px; background: var(--text); border-radius: 0; top: 3px; left: 3px; transition: transform .25s; }
+.toggle-input:checked + .toggle-slider { background: var(--primary); }
+.toggle-input:checked + .toggle-slider::after { transform: translateX(18px); }
+.toggle-lbl { font-size: 18px; color: var(--text); font-family: var(--body-font); }
+.form-range { -webkit-appearance: none; width: 100%; height: 4px; background: var(--border); outline: none; border-radius: 0; }
+.form-range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--primary); cursor: pointer; border: 2px solid var(--primary-text); border-radius: 0; }
+.form-range::-moz-range-thumb { width: 18px; height: 18px; background: var(--primary); cursor: pointer; border: 2px solid var(--primary-text); border-radius: 0; }
+.range-row { display: flex; align-items: center; gap: 14px; }
+.range-val { font-size: 18px; color: var(--primary); font-weight: 700; min-width: 38px; text-align: right; font-family: var(--body-font); }
+.input-group { display: flex; }
+.input-group .form-input { flex: 1; }
+.input-addon { display: flex; align-items: center; padding: 0 12px; background: var(--surface-alt); border: var(--input-border); border-right: none; font-size: 18px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; font-family: var(--body-font); }
+.input-group .input-addon + .form-input { border-left: none; }
+.input-group .form-input:not(:last-child) { border-right: none; }
+.flex-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── CHIPS (pixel border) ── */
+.chips-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+  border: 2px solid var(--border); background: var(--surface); font-size: 18px;
+  color: var(--text-muted); cursor: pointer; transition: all .15s; font-family: var(--body-font);
+}
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+.chip.selected { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+.chip-close { font-size: 18px; line-height: 1; opacity: .5; }
+.chip-close:hover { opacity: 1; }
+
+/* ── BADGES (pixel border) ── */
+.badges-wrap { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px;
+  font-size: 16px; font-weight: 700; letter-spacing: .04em; white-space: nowrap;
+  font-family: var(--body-font); border-radius: 0;
+}
+.badge-primary  { background: var(--primary);  color: var(--primary-text); }
+.badge-outline  { border: 2px solid var(--primary); color: var(--primary); }
+.badge-success  { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+.badge-warning  { background: var(--warn-bg);    color: var(--warn-text); border: 1px solid var(--warn-border); }
+.badge-danger   { background: var(--error-bg);   color: var(--error-text); border: 1px solid var(--error-border); }
+.badge-neutral  { background: var(--hover-bg);   color: var(--text-muted); }
+.badge-accent   { background: var(--accent);     color: #fff; }
+.badge-lg { padding: 6px 16px; font-size: 18px; }
+.badge-dot::before { content: '■'; font-size: 10px; }
+
+/* ── ALERTS ── */
+.alert { padding: 18px 22px; font-size: 18px; line-height: 1.6; display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; border: 2px solid; font-family: var(--body-font); }
+.alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.alert-body { flex: 1; }
+.alert-title { font-weight: 700; margin-bottom: 4px; font-family: var(--body-font); }
+.alert-info    { background: var(--info-bg);    color: var(--info-text);    border-color: var(--info-border); }
+.alert-success { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+.alert-warning { background: var(--warn-bg);    color: var(--warn-text);    border-color: var(--warn-border); }
+.alert-error   { background: var(--error-bg);   color: var(--error-text);   border-color: var(--error-border); }
+
+/* ── TABLE (retro grid) ── */
+.table-wrap { overflow-x: auto; border: 2px solid var(--primary); }
+.data-table { width: 100%; border-collapse: collapse; font-size: 18px; font-family: var(--body-font); }
+.data-table thead th { padding: 14px 18px; background: var(--accent); color: var(--text); font-weight: 700; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; text-align: left; border-bottom: 2px solid var(--primary); cursor: pointer; user-select: none; }
+.data-table thead th:hover { color: var(--primary); }
+.data-table tbody td { padding: 14px 18px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: var(--hover-bg); }
+.data-table tbody tr:nth-child(even) td { background: var(--stripe-bg); }
+
+/* ── PROGRESS (retro stepped) ── */
+.progress-item { margin-bottom: 22px; }
+.progress-hd { display: flex; justify-content: space-between; font-size: 18px; color: var(--text-muted); margin-bottom: 10px; font-family: var(--body-font); }
+.progress-hd span:first-child { font-weight: 600; color: var(--text); }
+.progress-bg { height: 8px; background: var(--border); overflow: hidden; border: 1px solid var(--accent); }
+.progress-fill {
+  height: 100%; background: var(--primary);
+  transition: width 1.4s steps(20, end);
+  background-image: repeating-linear-gradient(90deg, var(--primary) 0px, var(--primary) 8px, rgba(0,0,0,.2) 8px, rgba(0,0,0,.2) 10px);
+}
+.progress-fill.c-accent  {
+  background: var(--accent);
+  background-image: repeating-linear-gradient(90deg, var(--accent) 0px, var(--accent) 8px, rgba(0,0,0,.2) 8px, rgba(0,0,0,.2) 10px);
+}
+.progress-fill.c-success {
+  background: var(--success);
+  background-image: repeating-linear-gradient(90deg, var(--success) 0px, var(--success) 8px, rgba(0,0,0,.2) 8px, rgba(0,0,0,.2) 10px);
+}
+.progress-fill.c-warning {
+  background: var(--warning);
+  background-image: repeating-linear-gradient(90deg, var(--warning) 0px, var(--warning) 8px, rgba(0,0,0,.2) 8px, rgba(0,0,0,.2) 10px);
+}
+.progress-fill.c-danger {
+  background: var(--danger);
+  background-image: repeating-linear-gradient(90deg, var(--danger) 0px, var(--danger) 8px, rgba(0,0,0,.2) 8px, rgba(0,0,0,.2) 10px);
+}
+.progress-bg.thick { height: 12px; }
+
+/* ── SPINNER ── */
+.spinner-row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.spinner { border-radius: 0; border: 2px solid var(--border); border-top-color: var(--primary); animation: spin .75s steps(8) infinite; }
+.spinner.sm { width: 18px; height: 18px; }
+.spinner.md { width: 30px; height: 30px; border-width: 3px; }
+.spinner.lg { width: 46px; height: 46px; border-width: 3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.dots-loader { display: flex; gap: 6px; align-items: center; }
+.dot-pulse { width: 8px; height: 8px; background: var(--primary); animation: dotPulse 1.2s steps(2) infinite; }
+.dot-pulse:nth-child(2) { animation-delay: .2s; }
+.dot-pulse:nth-child(3) { animation-delay: .4s; }
+@keyframes dotPulse { 0%,80%,100% { transform: scale(.55); opacity: .35; } 40% { transform: scale(1); opacity: 1; } }
+.skeleton { background: var(--border); position: relative; overflow: hidden; }
+.skeleton::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,transparent,rgba(83,215,105,.15),transparent); animation: shimmer 1.5s infinite; }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* ── ACCORDION ── */
+.accordion-item { border: 2px solid var(--border); margin-bottom: 2px; background: var(--surface); }
+.accordion-btn { width: 100%; padding: 18px 24px; background: transparent; border: none; font-size: 18px; font-weight: 600; color: var(--text); font-family: var(--body-font); cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-align: left; transition: background .15s; }
+.accordion-btn:hover { background: var(--hover-bg); }
+.accordion-btn.open { color: var(--primary); }
+.acc-chevron { font-size: 14px; color: var(--text-muted); transition: transform .25s; }
+.accordion-btn.open .acc-chevron { transform: rotate(180deg); }
+.accordion-body { max-height: 0; overflow: hidden; transition: max-height .32s ease; }
+.accordion-body.open { max-height: 600px; }
+.accordion-content { padding: 18px 24px 24px; font-size: 18px; color: var(--text-muted); line-height: 1.7; border-top: 2px solid var(--border); font-family: var(--body-font); }
+
+/* ── INNER TABS ── */
+.inner-tab-bar { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+.inner-tab-btn { padding: 12px 22px; border: none; background: transparent; font-size: 18px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: var(--body-font); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .2s, border-color .2s; white-space: nowrap; }
+.inner-tab-btn:hover { color: var(--text); }
+.inner-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.inner-pane { display: none; font-size: 18px; color: var(--text-muted); line-height: 1.7; padding: 24px; background: var(--surface); border: 2px solid var(--border); border-top: none; font-family: var(--body-font); }
+.inner-pane.active { display: block; }
+
+/* ── CODE (green-on-black terminal) ── */
+.code-block {
+  background: var(--code-bg); color: var(--code-text); border: 2px solid var(--code-border);
+  padding: 28px 32px; font-family: 'VT323', monospace; font-size: 18px; line-height: 1.8; overflow-x: auto;
+  image-rendering: pixelated;
+}
+.code-block .kw  { color: #ffd700; font-weight: 700; }
+.code-block .fn  { color: #53d769; }
+.code-block .str { color: #e94560; }
+.code-block .cm  { color: #7a7a9a; font-style: italic; }
+.code-block .num { color: #ffd700; }
+.code-block .var { color: #e94560; }
+
+/* ── TIMELINE (pixel square dots) ── */
+.timeline { position: relative; padding-left: 44px; }
+.timeline::before { content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.tl-item { position: relative; margin-bottom: 40px; }
+.tl-dot { position: absolute; left: -38px; top: 4px; width: 16px; height: 16px; border-radius: 0; background: var(--primary); border: 2px solid var(--bg); box-shadow: 0 0 0 2px var(--primary); }
+.tl-dot.accent  { background: var(--accent);  box-shadow: 0 0 0 2px var(--accent); }
+.tl-dot.success { background: var(--success); box-shadow: 0 0 0 2px var(--success); }
+.tl-dot.danger  { background: var(--danger);  box-shadow: 0 0 0 2px var(--danger); }
+.tl-time  { font-size: 16px; color: var(--text-muted); margin-bottom: 6px; letter-spacing: .04em; font-family: var(--body-font); }
+.tl-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; font-family: var(--body-font); }
+.tl-desc  { font-size: 18px; color: var(--text-muted); line-height: 1.6; font-family: var(--body-font); }
+
+/* ── PAGINATION ── */
+.pagination { display: flex; gap: 4px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.page-btn {
+  min-width: 40px; height: 40px; padding: 0 12px; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border); background: var(--surface); color: var(--text);
+  font-size: 18px; font-family: var(--body-font); cursor: pointer; transition: all .15s;
+}
+.page-btn:hover { border-color: var(--primary); color: var(--primary); }
+.page-btn.active { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+.page-btn:disabled { opacity: .3; cursor: not-allowed; pointer-events: none; }
+
+/* ── AVATARS ── */
+.avatar-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.avatar { border-radius: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; border: 2px solid var(--border); flex-shrink: 0; font-family: var(--display-font); font-size: 10px; }
+.avatar.xs { width: 32px; height: 32px; font-size: 9px; }
+.avatar.sm { width: 44px; height: 44px; font-size: 10px; }
+.avatar.md { width: 56px; height: 56px; font-size: 12px; }
+.avatar.lg { width: 72px; height: 72px; font-size: 14px; }
+.avatar.square { border-radius: 0; }
+.av-stack { display: flex; }
+.av-stack .avatar { margin-left: -10px; border: 2px solid var(--bg); }
+.av-stack .avatar:first-child { margin-left: 0; }
+.av-a { background: #e94560; }
+.av-b { background: #0f3460; }
+.av-c { background: #53d769; }
+.av-d { background: #ffd700; color: #0a0a0a; }
+.av-e { background: #7a7a9a; }
+
+/* ── TOOLTIP ── */
+.tooltip-demo { display: flex; gap: 14px; flex-wrap: wrap; }
+.tt-wrap { position: relative; display: inline-block; }
+.tt-tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--tooltip-bg); color: var(--tooltip-text); font-size: 16px; padding: 6px 10px;
+  white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 10;
+  border: 1px solid var(--success); font-family: var(--body-font);
+}
+.tt-tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--tooltip-bg); }
+.tt-wrap:hover .tt-tip { opacity: 1; }
+
+/* ── TWO COL ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+@media (max-width:700px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ── CARD GRID ── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 2px; background: var(--border); border: 2px solid var(--primary); }
+.card { background: var(--surface); transition: background .2s; }
+.card:hover { background: var(--hover-bg); }
+.card-img {
+  height: 160px; display: flex; align-items: center; justify-content: center;
+  font-size: 48px; color: #fff; position: relative; overflow: hidden;
+  image-rendering: pixelated;
+}
+.card-img::after {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.1) 3px, rgba(0,0,0,.1) 4px);
+  pointer-events: none;
+}
+.card-body { padding: 24px; }
+.card-title { font-family: var(--display-font); font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 12px; line-height: 1.6; }
+.card-text { font-size: 18px; color: var(--text-muted); line-height: 1.6; margin-bottom: 18px; font-family: var(--body-font); }
+.card-foot { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-top: 2px solid var(--border); }
+.card-meta { font-size: 16px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; font-family: var(--body-font); }
+
+/* ── MODAL ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 1000; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--modal-bg); max-width: 560px; width: calc(100% - 40px);
+  box-shadow: 6px 6px 0 0 var(--accent); border: 2px solid var(--primary);
+  animation: modalIn .22s ease;
+}
+@keyframes modalIn { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-header { padding: 24px 28px 20px; border-bottom: 2px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-family: var(--display-font); font-size: 12px; font-weight: 700; color: var(--primary); line-height: 1.6; }
+.modal-close { width: 32px; height: 32px; border: 2px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+.modal-close:hover { background: var(--hover-bg); }
+.modal-body { padding: 26px 28px; font-size: 18px; color: var(--text-muted); line-height: 1.7; font-family: var(--body-font); }
+.modal-footer { padding: 18px 28px; border-top: 2px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ── TOAST ── */
+.toast-area { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 800; pointer-events: none; }
+.toast {
+  background: var(--modal-bg); border: 2px solid var(--border); border-left: 4px solid var(--primary);
+  padding: 15px 20px; font-size: 18px; color: var(--text); box-shadow: 4px 4px 0 0 #0a0a0a;
+  animation: toastIn .3s ease; pointer-events: all; max-width: 360px; font-family: var(--body-font);
+}
+.toast.success { border-left-color: var(--success); }
+.toast.error   { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+@keyframes toastIn { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ── RESPONSIVE ── */
+@media (max-width:860px) {
+  .sidebar { transform: translateX(-100%); transition: transform .25s; }
+  .sidebar.open { transform: none; }
+  .main-content { margin-left: 0; }
+  .mobile-menu-btn { display: flex !important; }
+}
+.mobile-menu-btn {
+  display: none; position: fixed; top: 14px; left: 14px; z-index: 300;
+  background: var(--surface); border: 2px solid var(--primary); padding: 8px 12px;
+  cursor: pointer; font-size: 16px; font-family: var(--body-font); color: var(--text);
+}
+
+/* ── ZOOM SLIDER ── */
+.zoom-control {
+  position: fixed; top: 20px; right: 24px; z-index: 500;
+  background: var(--surface); border: 2px solid var(--primary);
+  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+  box-shadow: 4px 4px 0 0 var(--accent);
+}
+.zoom-control-label {
+  font-size: 16px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text-muted); white-space: nowrap;
+  font-family: var(--body-font);
+}
+.zoom-control-slider {
+  -webkit-appearance: none; width: 120px; height: 4px;
+  background: var(--border); outline: none; cursor: pointer; border-radius: 0;
+}
+.zoom-control-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px;
+  background: var(--primary); cursor: pointer;
+  border: 2px solid var(--primary-text); border-radius: 0;
+}
+.zoom-control-slider::-moz-range-thumb {
+  width: 16px; height: 16px; background: var(--primary);
+  cursor: pointer; border: 2px solid var(--primary-text); border-radius: 0;
+}
+.zoom-control-value {
+  font-family: 'VT323', monospace; font-size: 18px;
+  font-weight: 700; color: var(--primary); min-width: 38px; text-align: right;
+}
+@media (max-width:860px) {
+  .zoom-control { top: 14px; right: 14px; padding: 8px 12px; }
+  .zoom-control-slider { width: 80px; }
+  .zoom-control-label { display: none; }
+}
+
+/* ── FLOW DIAGRAM ── */
+.flow-wrap { background: var(--code-bg); border: 2px solid var(--primary); padding: 32px 28px; }
+.flow-pipeline { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-bottom: 28px; }
+.flow-box { border: 2px solid var(--border); background: var(--surface); padding: 16px 20px; text-align: center; flex-shrink: 0; }
+.flow-box.dark { background: var(--primary); border-color: var(--primary); color: #fff; }
+.flow-box.mid  { background: var(--accent);  border-color: var(--accent);  color: #fff; }
+.flow-box.green{ background: var(--success); border-color: var(--success); color: #0a0a0a; }
+.flow-box-label { font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; margin-bottom: 6px; font-family: var(--body-font); }
+.flow-box-val   { font-size: 18px; font-weight: 700; font-family: 'VT323', monospace; }
+.flow-box-sub   { font-size: 16px; opacity: .7; margin-top: 4px; font-family: var(--body-font); }
+.flow-arrow { font-size: 20px; color: var(--primary); padding: 0 10px; flex-shrink: 0; }
+.flow-scales { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; background: var(--border); border: 2px solid var(--accent); margin-top: 20px; }
+.flow-scale-item { background: var(--surface); padding: 14px 18px; }
+.flow-scale-label { font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; font-family: var(--body-font); }
+.flow-scale-val { font-size: 18px; font-family: 'VT323', monospace; color: var(--text); }
+
+/* ── SVG CHART ── */
+.chart-svg-wrap { background: var(--surface); border: 2px solid var(--border); padding: 24px; overflow-x: auto; }
+.chart-svg-wrap svg { display: block; min-width: 700px; }
+</style>
+</head>
+<body>
+<button class="mobile-menu-btn" id="menuToggle">☰</button>
+
+<!-- ZOOM CONTROL -->
+<div class="zoom-control">
+  <span class="zoom-control-label">缩放</span>
+  <input type="range" class="zoom-control-slider" id="zoomSlider" min="75" max="150" value="100" step="5">
+  <span class="zoom-control-value" id="zoomValue">100%</span>
+</div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <span class="sidebar-brand-name">YOLO</span>
+    <span class="sidebar-brand-sub">目标检测 · 像素复古</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-title">导航</div>
+    <a class="sidebar-link" href="#s-header">  <span class="sl-icon">⊞</span> 导航栏</a>
+    <a class="sidebar-link" href="#s-hero">    <span class="sl-icon">◈</span> 英雄区</a>
+    <div class="sidebar-group-title">数据展示</div>
+    <a class="sidebar-link" href="#s-stats">   <span class="sl-icon">◻</span> 统计卡片</a>
+    <a class="sidebar-link" href="#s-arch">    <span class="sl-icon">⬡</span> 架构流程图</a>
+    <a class="sidebar-link" href="#s-table">   <span class="sl-icon">▤</span> 性能对比</a>
+    <a class="sidebar-link" href="#s-progress"><span class="sl-icon">▬</span> 进度加载</a>
+    <a class="sidebar-link" href="#s-charts">  <span class="sl-icon">▲</span> 性能图表</a>
+    <div class="sidebar-group-title">交互控件</div>
+    <a class="sidebar-link" href="#s-buttons"> <span class="sl-icon">▷</span> 按钮</a>
+    <a class="sidebar-link" href="#s-form">    <span class="sl-icon">▣</span> 模型配置</a>
+    <a class="sidebar-link" href="#s-chips">   <span class="sl-icon">◎</span> 筛选标签</a>
+    <div class="sidebar-group-title">信息组件</div>
+    <a class="sidebar-link" href="#s-badges">  <span class="sl-icon">◉</span> 徽章</a>
+    <a class="sidebar-link" href="#s-alerts">  <span class="sl-icon">△</span> 提示通知</a>
+    <a class="sidebar-link" href="#s-cards">   <span class="sl-icon">▪</span> 模型卡片</a>
+    <a class="sidebar-link" href="#s-accordion"><span class="sl-icon">≡</span> 折叠面板</a>
+    <div class="sidebar-group-title">高级功能</div>
+    <a class="sidebar-link" href="#s-tabs">    <span class="sl-icon">⊟</span> 嵌套标签页</a>
+    <a class="sidebar-link" href="#s-code">    <span class="sl-icon">{}</span> 代码展示</a>
+    <a class="sidebar-link" href="#s-timeline"><span class="sl-icon">↓</span> 发展时间轴</a>
+    <a class="sidebar-link" href="#s-avatars"> <span class="sl-icon">○</span> 作者 / 提示</a>
+    <a class="sidebar-link" href="#s-pager">   <span class="sl-icon">»</span> 分页 / 弹窗</a>
+  </nav>
+</aside>
+
+<main class="main-content">
+<div class="showcase">
+
+<!-- ① PAGE HEADER -->
+<section class="sc-section" id="s-header">
+  <div class="sc-label">导航栏 Page Header</div>
+  <div class="page-header">
+    <span class="ph-brand">YOLO<em>·det</em></span>
+    <nav class="ph-nav">
+      <button class="ph-link active">YOLO</button>
+      <button class="ph-link">检测</button>
+      <button class="ph-link">分割</button>
+      <button class="ph-link">姿态</button>
+      <button class="ph-link">分类</button>
+    </nav>
+  </div>
+  <nav class="breadcrumb">
+    <a>首页</a><span class="bc-sep"> › </span>
+    <a>目标检测</a><span class="bc-sep"> › </span>
+    <a>单阶段算法</a><span class="bc-sep"> › </span>
+    <span>YOLO 发展全景</span>
+  </nav>
+</section>
+
+<!-- ② HERO -->
+<section class="sc-section" id="s-hero">
+  <div class="sc-label">英雄区 Hero</div>
+  <div class="hero">
+    <div class="hero-tag">目标检测 · 2015 — 2024 · 10+ 版本迭代</div>
+    <h1 class="hero-title">You Only Look Once<br>实时目标检测范式</h1>
+    <p class="hero-subtitle">单阶段端到端检测算法。一次前向传播，同时预测边界框与类别概率，以极速推理重新定义目标检测的速度–精度边界。</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary btn-lg" id="openModalBtn">▶ 运行推理</button>
+      <button class="btn btn-secondary btn-lg" id="toastBtn">↗ 查看论文</button>
+      <button class="btn btn-ghost btn-lg">⤓ 下载权重</button>
+    </div>
+  </div>
+</section>
+
+<!-- ③ STATS -->
+<section class="sc-section" id="s-stats">
+  <div class="sc-label">统计卡片 Stats</div>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-lbl">COCO mAP</div>
+      <div class="stat-val">54.4</div>
+      <div class="stat-chg up">↑ +4.2 vs YOLOv8x</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">最大 FPS</div>
+      <div class="stat-val">161</div>
+      <div class="stat-chg up">↑ YOLOv7 · V100</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">最小参数量</div>
+      <div class="stat-val">6.2M</div>
+      <div class="stat-chg dn">↓ YOLOv8n 极小版</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">版本迭代</div>
+      <div class="stat-val">10+</div>
+      <div class="stat-chg up">↑ 2015 至今持续</div>
+    </div>
+  </div>
+</section>
+
+<!-- ④ ARCHITECTURE FLOWCHART -->
+<section class="sc-section" id="s-arch">
+  <div class="sc-label">架构流程图 Architecture</div>
+  <div class="flow-wrap">
+    <div style="font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:18px;font-family:var(--body-font);">推理管线 Inference Pipeline</div>
+    <div class="flow-pipeline">
+      <div class="flow-box dark">
+        <div class="flow-box-label">Input</div>
+        <div class="flow-box-val">640×640</div>
+        <div class="flow-box-sub">Letterbox</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box mid">
+        <div class="flow-box-label">Backbone</div>
+        <div class="flow-box-val">CSPDarknet</div>
+        <div class="flow-box-sub">特征提取</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box mid">
+        <div class="flow-box-label">Neck</div>
+        <div class="flow-box-val">FPN + PAN</div>
+        <div class="flow-box-sub">特征融合</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box green">
+        <div class="flow-box-label">Head</div>
+        <div class="flow-box-val">Detect</div>
+        <div class="flow-box-sub">Anchor-free</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box dark">
+        <div class="flow-box-label">Output</div>
+        <div class="flow-box-val">BBox+Cls</div>
+        <div class="flow-box-sub">+Confidence</div>
+      </div>
+    </div>
+    <div style="font-size:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;font-family:var(--body-font);">多尺度输出 Multi-Scale Output</div>
+    <div class="flow-scales">
+      <div class="flow-scale-item">
+        <div class="flow-scale-label">P3 / stride 8</div>
+        <div class="flow-scale-val">80×80 grid · 小目标</div>
+      </div>
+      <div class="flow-scale-item">
+        <div class="flow-scale-label">P4 / stride 16</div>
+        <div class="flow-scale-val">40×40 grid · 中目标</div>
+      </div>
+      <div class="flow-scale-item">
+        <div class="flow-scale-label">P5 / stride 32</div>
+        <div class="flow-scale-val">20×20 grid · 大目标</div>
+      </div>
+    </div>
+    <div style="margin-top:18px;font-size:18px;color:var(--text-muted);font-family:var(--body-font);">
+      每个 Grid Cell 预测：<code style="background:var(--surface);padding:2px 6px;border:1px solid var(--border);font-size:16px;color:var(--primary);">B × (x, y, w, h, conf)</code> + <code style="background:var(--surface);padding:2px 6px;border:1px solid var(--border);font-size:16px;color:var(--primary);">C 类概率</code> · YOLOv8+ 使用 Anchor-free，直接回归中心点偏移
+    </div>
+  </div>
+</section>
+
+<!-- ⑤ COMPARISON TABLE -->
+<section class="sc-section" id="s-table">
+  <div class="sc-label">性能对比 Comparison Table</div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>版本 ↕</th>
+          <th>年份 ↕</th>
+          <th>骨干网络 ↕</th>
+          <th>mAP (COCO) ↕</th>
+          <th>FPS† ↕</th>
+          <th>参数量 ↕</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>YOLOv1</strong></td>
+          <td>2015</td>
+          <td>Darknet-24</td>
+          <td>21.9<span style="font-size:14px;color:var(--text-muted);">*</span></td>
+          <td>45</td>
+          <td>192M</td>
+          <td><span class="badge badge-neutral">已弃用</span></td>
+        </tr>
+        <tr>
+          <td><strong>YOLOv2</strong></td>
+          <td>2016</td>
+          <td>Darknet-19</td>
+          <td>21.6<span style="font-size:14px;color:var(--text-muted);">*</span></td>
+          <td>67</td>
+          <td>50.7M</td>
+          <td><span class="badge badge-neutral">已弃用</span></td>
+        </tr>
+        <tr>
+          <td><strong>YOLOv3</strong></td>
+          <td>2018</td>
+          <td>Darknet-53</td>
+          <td>33.0</td>
+          <td>30</td>
+          <td>61.9M</td>
+          <td><span class="badge badge-warning">旧版</span></td>
+        </tr>
+        <tr>
+          <td><strong>YOLOv4</strong></td>
+          <td>2020</td>
+          <td>CSPDarknet</td>
+          <td>43.5</td>
+          <td>65</td>
+          <td>63.9M</td>
+          <td><span class="badge badge-warning">旧版</span></td>
+        </tr>
+        <tr>
+          <td><strong>YOLOv5m</strong></td>
+          <td>2020</td>
+          <td>CSPNet</td>
+          <td>45.4</td>
+          <td>112</td>
+          <td>21.2M</td>
+          <td><span class="badge badge-accent">稳定</span></td>
+        </tr>
+        <tr>
+          <td><strong>YOLOv7</strong></td>
+          <td>2022</td>
+          <td>E-ELAN</td>
+          <td>51.2</td>
+          <td>161</td>
+          <td>36.9M</td>
+          <td><span class="badge badge-success">精选</span></td>
+        </tr>
+        <tr>
+          <td><strong>YOLOv8m</strong></td>
+          <td>2023</td>
+          <td>CSP-Dark</td>
+          <td>50.2</td>
+          <td>83</td>
+          <td>25.9M</td>
+          <td><span class="badge badge-primary">推荐</span></td>
+        </tr>
+        <tr>
+          <td><strong>YOLOv10m</strong></td>
+          <td>2024</td>
+          <td>CSPNet</td>
+          <td>51.1</td>
+          <td>72</td>
+          <td>15.4M</td>
+          <td><span class="badge badge-success">SOTA</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:12px;font-size:16px;color:var(--text-muted);font-family:var(--body-font);">* v1/v2 mAP 基于 VOC 2007，与 COCO AP50:95 不可直接比较 &nbsp;|&nbsp; †FPS 来自不同论文、不同硬件，仅供参考</div>
+</section>
+
+<!-- ⑥ PROGRESS & LOADING -->
+<section class="sc-section" id="s-progress">
+  <div class="sc-label">进度与加载 Progress &amp; Loading</div>
+  <div class="two-col">
+    <div>
+      <div class="progress-item">
+        <div class="progress-hd"><span>推理速度提升（v1→v7）</span><span>258%</span></div>
+        <div class="progress-bg thick"><div class="progress-fill" style="width:95%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-hd"><span>COCO mAP 增长（v3→v10）</span><span>+18.1%</span></div>
+        <div class="progress-bg thick"><div class="progress-fill c-success" style="width:82%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-hd"><span>参数压缩（v4→v10m）</span><span>76%↓</span></div>
+        <div class="progress-bg"><div class="progress-fill c-accent" style="width:76%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-hd"><span>实时性能（&gt;30 FPS）覆盖率</span><span>87%</span></div>
+        <div class="progress-bg"><div class="progress-fill c-warning" style="width:87%"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-hd"><span>NMS 依赖消除（v10 起）</span><span>100%</span></div>
+        <div class="progress-bg"><div class="progress-fill c-danger" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div style="font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;font-family:var(--body-font);">模型推理中</div>
+      <div class="spinner-row">
+        <div class="spinner sm"></div>
+        <div class="spinner md"></div>
+        <div class="spinner lg"></div>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;font-family:var(--body-font);">后处理等待</div>
+        <div class="dots-loader">
+          <div class="dot-pulse"></div>
+          <div class="dot-pulse"></div>
+          <div class="dot-pulse"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;font-family:var(--body-font);">检测结果加载</div>
+        <div class="stack" style="gap:7px;">
+          <div class="skeleton" style="height:12px;width:80%;"></div>
+          <div class="skeleton" style="height:12px;width:60%;"></div>
+          <div class="skeleton" style="height:12px;width:90%;"></div>
+          <div class="skeleton" style="height:72px;width:100%;margin-top:4px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑦ SVG CHARTS (with inner-tabs) -->
+<section class="sc-section" id="s-charts">
+  <div class="sc-label">性能图表 Charts</div>
+  <div class="inner-tab-bar">
+    <button class="inner-tab-btn active" data-inner="chart-map">mAP 历版对比</button>
+    <button class="inner-tab-btn" data-inner="chart-scatter">速度 vs 精度</button>
+  </div>
+
+  <!-- mAP Bar Chart -->
+  <div class="inner-pane active" id="chart-map" style="padding:0;">
+    <div class="chart-svg-wrap">
+      <svg viewBox="0 0 1200 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:1200px;">
+        <!-- grid lines -->
+        <line x1="50" y1="15"  x2="1180" y2="15"  stroke="#0f3460" stroke-width="1"/>
+        <line x1="50" y1="75"  x2="1180" y2="75"  stroke="#0f3460" stroke-width="1"/>
+        <line x1="50" y1="120" x2="1180" y2="120" stroke="#0f3460" stroke-width="1"/>
+        <line x1="50" y1="155" x2="1180" y2="155" stroke="#0f3460" stroke-width="1"/>
+        <line x1="50" y1="180" x2="1180" y2="180" stroke="#0f3460" stroke-width="1"/>
+        <!-- y-axis labels -->
+        <text x="44" y="183" text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">0</text>
+        <text x="44" y="124" text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">20</text>
+        <text x="44" y="79"  text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">35</text>
+        <text x="44" y="58"  text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">45</text>
+        <text x="44" y="19"  text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">55</text>
+        <!-- y-axis title -->
+        <text x="12" y="100" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace" transform="rotate(-90,12,100)">COCO mAP</text>
+        <!-- bars (retro palette) -->
+        <rect x="75"   y="114" width="80" height="66"  fill="#7a7a9a"/>
+        <rect x="210"  y="115" width="80" height="65"  fill="#5a5a7a"/>
+        <rect x="345"  y="81"  width="80" height="99"  fill="#0f3460"/>
+        <rect x="480"  y="50"  width="80" height="130" fill="#1a5276"/>
+        <rect x="615"  y="44"  width="80" height="136" fill="#2980b9"/>
+        <rect x="750"  y="27"  width="80" height="153" fill="#53d769"/>
+        <rect x="885"  y="30"  width="80" height="150" fill="#e94560"/>
+        <rect x="1020" y="27"  width="80" height="153" fill="#ffd700"/>
+        <!-- mAP value labels on bars -->
+        <text x="115"  y="110" text-anchor="middle" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">21.9</text>
+        <text x="250"  y="111" text-anchor="middle" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">21.6</text>
+        <text x="385"  y="77"  text-anchor="middle" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">33.0</text>
+        <text x="520"  y="46"  text-anchor="middle" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">43.5</text>
+        <text x="655"  y="40"  text-anchor="middle" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">45.4</text>
+        <text x="790"  y="23"  text-anchor="middle" font-size="10" fill="#53d769" font-weight="700" font-family="VT323,monospace">51.2</text>
+        <text x="925"  y="26"  text-anchor="middle" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">50.2</text>
+        <text x="1060" y="23"  text-anchor="middle" font-size="10" fill="#ffd700" font-weight="700" font-family="VT323,monospace">51.1</text>
+        <!-- x-axis labels -->
+        <text x="115"  y="196" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">v1</text>
+        <text x="250"  y="196" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">v2</text>
+        <text x="385"  y="196" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">v3</text>
+        <text x="520"  y="196" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">v4</text>
+        <text x="655"  y="196" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">v5m</text>
+        <text x="790"  y="196" text-anchor="middle" font-size="11" fill="#53d769" font-weight="700" font-family="VT323,monospace">v7</text>
+        <text x="925"  y="196" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">v8m</text>
+        <text x="1060" y="196" text-anchor="middle" font-size="11" fill="#ffd700" font-weight="700" font-family="VT323,monospace">v10m</text>
+        <!-- sub-labels year -->
+        <text x="115"  y="210" text-anchor="middle" font-size="9" fill="#5a5a7a" font-family="VT323,monospace">2015</text>
+        <text x="250"  y="210" text-anchor="middle" font-size="9" fill="#5a5a7a" font-family="VT323,monospace">2016</text>
+        <text x="385"  y="210" text-anchor="middle" font-size="9" fill="#5a5a7a" font-family="VT323,monospace">2018</text>
+        <text x="520"  y="210" text-anchor="middle" font-size="9" fill="#5a5a7a" font-family="VT323,monospace">2020</text>
+        <text x="655"  y="210" text-anchor="middle" font-size="9" fill="#5a5a7a" font-family="VT323,monospace">2020</text>
+        <text x="790"  y="210" text-anchor="middle" font-size="9" fill="#5a5a7a" font-family="VT323,monospace">2022</text>
+        <text x="925"  y="210" text-anchor="middle" font-size="9" fill="#5a5a7a" font-family="VT323,monospace">2023</text>
+        <text x="1060" y="210" text-anchor="middle" font-size="9" fill="#5a5a7a" font-family="VT323,monospace">2024</text>
+        <!-- baseline -->
+        <line x1="50" y1="180" x2="1180" y2="180" stroke="#e94560" stroke-width="2"/>
+        <line x1="50" y1="15"  x2="50"  y2="180" stroke="#e94560" stroke-width="2"/>
+      </svg>
+    </div>
+    <div style="padding:12px 20px;font-size:16px;color:var(--text-muted);font-family:var(--body-font);">数据来源：各原始论文 COCO test-dev AP50:95 · v1/v2 为估算值</div>
+  </div>
+
+  <!-- Scatter Plot -->
+  <div class="inner-pane" id="chart-scatter" style="padding:0;">
+    <div class="chart-svg-wrap">
+      <svg viewBox="0 0 1200 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:1200px;">
+        <!-- grid lines -->
+        <line x1="60" y1="15"  x2="1180" y2="15"  stroke="#0f3460" stroke-width="1"/>
+        <line x1="60" y1="55"  x2="1180" y2="55"  stroke="#0f3460" stroke-width="1"/>
+        <line x1="60" y1="95"  x2="1180" y2="95"  stroke="#0f3460" stroke-width="1"/>
+        <line x1="60" y1="135" x2="1180" y2="135" stroke="#0f3460" stroke-width="1"/>
+        <line x1="60" y1="185" x2="1180" y2="185" stroke="#0f3460" stroke-width="1"/>
+        <!-- y-axis labels (mAP) -->
+        <text x="54" y="188" text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">0</text>
+        <text x="54" y="139" text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">20</text>
+        <text x="54" y="99"  text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">35</text>
+        <text x="54" y="59"  text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">50</text>
+        <text x="54" y="19"  text-anchor="end" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">60</text>
+        <text x="14" y="100" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace" transform="rotate(-90,14,100)">mAP</text>
+        <!-- x-axis labels (FPS) -->
+        <text x="60"   y="203" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">0</text>
+        <text x="340"  y="203" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">50</text>
+        <text x="620"  y="203" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">100</text>
+        <text x="900"  y="203" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">150</text>
+        <text x="1180" y="203" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">200</text>
+        <text x="620" y="222" text-anchor="middle" font-size="11" fill="#7a7a9a" font-family="VT323,monospace">FPS †</text>
+        <!-- axes -->
+        <line x1="60" y1="185" x2="1180" y2="185" stroke="#e94560" stroke-width="2"/>
+        <line x1="60" y1="15"  x2="60"   y2="185" stroke="#e94560" stroke-width="2"/>
+        <!-- scatter points -->
+        <!-- trend arrow -->
+        <path d="M 228,86 Q 424,55 687,49 Q 962,31 962,31" stroke="#0f3460" stroke-width="2" fill="none" stroke-dasharray="6,4"/>
+        <!-- points (retro squares via rect) -->
+        <rect x="305" y="112" width="14" height="14" fill="#7a7a9a" stroke="#1a1a2e" stroke-width="1.5"/>
+        <rect x="428" y="113" width="14" height="14" fill="#5a5a7a" stroke="#1a1a2e" stroke-width="1.5"/>
+        <rect x="221" y="79"  width="14" height="14" fill="#0f3460" stroke="#1a1a2e" stroke-width="1.5"/>
+        <rect x="417" y="48"  width="14" height="14" fill="#1a5276" stroke="#1a1a2e" stroke-width="1.5"/>
+        <rect x="680" y="42"  width="14" height="14" fill="#2980b9" stroke="#1a1a2e" stroke-width="1.5"/>
+        <rect x="518" y="27"  width="14" height="14" fill="#e94560" stroke="#1a1a2e" stroke-width="1.5"/>
+        <rect x="456" y="25"  width="14" height="14" fill="#ffd700" stroke="#1a1a2e" stroke-width="1.5"/>
+        <rect x="955" y="24"  width="16" height="16" fill="#53d769" stroke="#1a1a2e" stroke-width="2"/>
+        <!-- labels -->
+        <text x="312" y="109" dx="10" dy="-6" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">v1</text>
+        <text x="435" y="111" dx="10" dy="-6" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">v2</text>
+        <text x="228" y="76"  dx="10" dy="-6" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">v3</text>
+        <text x="424" y="45"  dx="10" dy="-6" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">v4</text>
+        <text x="687" y="39"  dx="10" dy="-6" font-size="10" fill="#7a7a9a" font-family="VT323,monospace">v5m</text>
+        <text x="525" y="24"  dx="10" dy="-6" font-size="10" fill="#e94560" font-family="VT323,monospace">v8m</text>
+        <text x="463" y="46"  dx="-32" dy="14" font-size="10" fill="#ffd700" font-family="VT323,monospace">v10m</text>
+        <text x="962" y="21"  dx="10" dy="-8" font-size="10" fill="#53d769" font-weight="700" font-family="VT323,monospace">v7 ★</text>
+      </svg>
+    </div>
+    <div style="padding:12px 20px;font-size:16px;color:var(--text-muted);font-family:var(--body-font);">右上角 = 理想区域（高精度 + 高速度）· †FPS 硬件不同，不可直接比较</div>
+  </div>
+</section>
+
+<!-- ⑧ BUTTONS -->
+<section class="sc-section" id="s-buttons">
+  <div class="sc-label">按钮 Buttons</div>
+  <div class="btn-row">
+    <button class="btn btn-primary">▶ 运行推理</button>
+    <button class="btn btn-secondary">↗ 查看论文</button>
+    <button class="btn btn-accent">⚡ 快速测试</button>
+    <button class="btn btn-success">✓ 验证模型</button>
+    <button class="btn btn-danger">✕ 停止推理</button>
+    <button class="btn btn-ghost">重置参数</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary btn-sm">小型</button>
+    <button class="btn btn-primary">中型</button>
+    <button class="btn btn-primary btn-lg">大型</button>
+    <button class="btn btn-primary btn-xl">超大</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary btn-icon">▶</button>
+    <button class="btn btn-secondary btn-icon">⤓</button>
+    <button class="btn btn-ghost btn-icon">⚙</button>
+    <button class="btn btn-success btn-icon">✓</button>
+    <button class="btn btn-primary" id="toastSuccessBtn">推理完成通知</button>
+    <button class="btn btn-ghost" id="toastWarnBtn">低置信度警告</button>
+    <button class="btn btn-danger" id="toastErrBtn">GPU 内存不足</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" disabled>推理中…</button>
+    <button class="btn btn-secondary" disabled>加载权重…</button>
+  </div>
+</section>
+
+<!-- ⑨ FORM -->
+<section class="sc-section" id="s-form">
+  <div class="sc-label">模型配置 Form Controls</div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label class="form-lbl">模型版本</label>
+      <select class="form-input">
+        <option>YOLOv10m（推荐）</option>
+        <option>YOLOv8m</option>
+        <option>YOLOv8n（轻量）</option>
+        <option>YOLOv7</option>
+        <option>YOLOv5m</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">推理设备</label>
+      <select class="form-input">
+        <option>CUDA GPU（推荐）</option>
+        <option>CPU</option>
+        <option>Apple MPS</option>
+        <option>OpenVINO</option>
+        <option>TensorRT</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">置信度阈值 (conf)</label>
+      <div class="range-row">
+        <input class="form-range" type="range" min="0" max="100" value="25" id="rangeConf">
+        <span class="range-val" id="rangeConfVal">0.25</span>
+      </div>
+      <span class="form-hint">低值召回率高，高值精确率高</span>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">IoU 阈值 (NMS)</label>
+      <div class="range-row">
+        <input class="form-range" type="range" min="0" max="100" value="45" id="rangeIou">
+        <span class="range-val" id="rangeIouVal">0.45</span>
+      </div>
+      <span class="form-hint">控制重叠框过滤程度</span>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">输入分辨率</label>
+      <div class="input-group">
+        <input class="form-input" type="number" value="640" min="32" step="32">
+        <span class="input-addon" style="border-left:none;border-right:2px solid #0f3460;">px</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">搜索模型权重</label>
+      <div class="input-group">
+        <input class="form-input" type="text" placeholder="yolov8m.pt">
+        <button class="btn btn-primary" style="flex-shrink:0;border-left:none;">搜索</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">实验备注</label>
+      <textarea class="form-input" placeholder="记录本次推理的配置与目的…" style="min-height:72px;"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-lbl">Batch 大小</label>
+      <div class="input-group">
+        <span class="input-addon">batch=</span>
+        <input class="form-input" type="number" value="1" min="1">
+      </div>
+    </div>
+    <div class="form-group form-full">
+      <label class="form-lbl">任务类型（多选）</label>
+      <div class="checks-row">
+        <label class="form-check"><input type="checkbox" checked> 目标检测</label>
+        <label class="form-check"><input type="checkbox"> 实例分割</label>
+        <label class="form-check"><input type="checkbox"> 姿态估计</label>
+        <label class="form-check"><input type="checkbox"> 图像分类</label>
+      </div>
+    </div>
+    <div class="form-group form-full">
+      <label class="form-lbl">导出格式（单选）</label>
+      <div class="checks-row">
+        <label class="form-check"><input type="radio" name="fmt" checked> PyTorch</label>
+        <label class="form-check"><input type="radio" name="fmt"> ONNX</label>
+        <label class="form-check"><input type="radio" name="fmt"> TensorRT</label>
+        <label class="form-check"><input type="radio" name="fmt"> CoreML</label>
+      </div>
+    </div>
+    <div class="form-group form-full">
+      <label class="form-lbl">推理选项</label>
+      <div class="flex-row">
+        <label class="toggle-wrap">
+          <input class="toggle-input" type="checkbox" checked>
+          <span class="toggle-slider"></span>
+          <span class="toggle-lbl">半精度 FP16</span>
+        </label>
+        <label class="toggle-wrap">
+          <input class="toggle-input" type="checkbox">
+          <span class="toggle-slider"></span>
+          <span class="toggle-lbl">动态推理</span>
+        </label>
+        <label class="toggle-wrap">
+          <input class="toggle-input" type="checkbox" checked>
+          <span class="toggle-slider"></span>
+          <span class="toggle-lbl">保存结果</span>
+        </label>
+      </div>
+    </div>
+    <div class="form-group form-full">
+      <label class="form-lbl">可视化参数</label>
+      <div class="flex-row">
+        <input type="color" value="#e94560" style="width:44px;height:36px;border:2px solid var(--border);cursor:pointer;background:none;padding:2px;" title="边界框颜色">
+        <input type="color" value="#53d769" style="width:44px;height:36px;border:2px solid var(--border);cursor:pointer;background:none;padding:2px;" title="标签背景">
+        <input type="color" value="#ffd700" style="width:44px;height:36px;border:2px solid var(--border);cursor:pointer;background:none;padding:2px;" title="关键点颜色">
+        <input type="date"  class="form-input" style="max-width:190px;" value="2024-06-01">
+        <input type="time"  class="form-input" style="max-width:130px;" value="09:00">
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:26px;">
+    <button class="btn btn-primary" id="openModalBtn2">▶ 开始推理</button>
+    <button class="btn btn-ghost" style="margin-left:10px;">重置配置</button>
+  </div>
+</section>
+
+<!-- ⑩ CHIPS -->
+<section class="sc-section" id="s-chips">
+  <div class="sc-label">筛选标签 Chips</div>
+  <div class="chips-row">
+    <span class="chip selected">全部</span>
+    <span class="chip">目标检测</span>
+    <span class="chip">实例分割</span>
+    <span class="chip">姿态估计</span>
+    <span class="chip">图像分类</span>
+    <span class="chip">旋转框检测 <span class="chip-close">×</span></span>
+    <span class="chip">轨迹追踪 <span class="chip-close">×</span></span>
+    <span class="chip">全景分割 <span class="chip-close">×</span></span>
+  </div>
+</section>
+
+<!-- ⑪ BADGES -->
+<section class="sc-section" id="s-badges">
+  <div class="sc-label">徽章 Badges</div>
+  <div class="badges-wrap">
+    <span class="badge badge-primary">YOLO</span>
+    <span class="badge badge-outline">Anchor-free</span>
+    <span class="badge badge-success">SOTA</span>
+    <span class="badge badge-warning">实验性</span>
+    <span class="badge badge-danger">已弃用</span>
+    <span class="badge badge-neutral">旧版</span>
+    <span class="badge badge-accent">NMS-free</span>
+    <span class="badge badge-primary badge-lg">YOLOv10 推荐</span>
+    <span class="badge badge-dot badge-success"> 模型在线</span>
+    <span class="badge badge-dot badge-danger"> GPU 离线</span>
+    <span class="badge badge-dot badge-warning"> 推理繁忙</span>
+  </div>
+</section>
+
+<!-- ⑫ ALERTS -->
+<section class="sc-section" id="s-alerts">
+  <div class="sc-label">提示通知 Alerts</div>
+  <div class="alert alert-info">
+    <span class="alert-icon">ℹ</span>
+    <div class="alert-body">
+      <div class="alert-title">基准测试说明</div>
+      不同版本 FPS 数据来自各自原始论文，测试 GPU 型号不同（Titan X / V100 / A100），数值不可直接横向比较，请以实际部署硬件为准。
+    </div>
+  </div>
+  <div class="alert alert-success">
+    <span class="alert-icon">✓</span>
+    <div class="alert-body">
+      <div class="alert-title">YOLOv10 重大突破</div>
+      首次实现 NMS-free 端到端目标检测（双重标签分配 + 一致匹配），消除推理时 NMS 后处理延迟，大幅提升部署效率。
+    </div>
+  </div>
+  <div class="alert alert-warning">
+    <span class="alert-icon">⚠</span>
+    <div class="alert-body">
+      <div class="alert-title">v1/v2 mAP 注意</div>
+      YOLOv1 和 YOLOv2 的 mAP 数值基于 PASCAL VOC 2007 数据集，与后续版本使用的 COCO AP50:95 指标体系不同，不可直接对比。
+    </div>
+  </div>
+  <div class="alert alert-error">
+    <span class="alert-icon">✕</span>
+    <div class="alert-body">
+      <div class="alert-title">无官方 FPS 数据</div>
+      YOLOv6 和 YOLOv9 未在官方论文中提供统一基准的 FPS 测试结果，上表中对应值已略去，以免误导。
+    </div>
+  </div>
+</section>
+
+<!-- ⑬ MODEL CARDS -->
+<section class="sc-section" id="s-cards">
+  <div class="sc-label">模型卡片 Model Cards</div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-img" style="background:linear-gradient(135deg,#0f3460,#1a1a2e);">🚀</div>
+      <div class="card-body">
+        <div class="card-title">YOLOv5</div>
+        <div class="card-text">Ultralytics 重写，Python-first 工程化实践。CSPNet 骨干，AutoAnchor 锚框自动聚类，支持多种导出格式。</div>
+        <button class="btn btn-secondary btn-sm">查看文档</button>
+      </div>
+      <div class="card-foot">
+        <span class="card-meta">📅 2020 · 21.2M</span>
+        <span class="badge badge-accent">稳定</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-img" style="background:linear-gradient(135deg,#1a1a2e,#e94560);">⚡</div>
+      <div class="card-body">
+        <div class="card-title">YOLOv8</div>
+        <div class="card-text">Anchor-free 检测头，C2f 跨阶段融合模块，统一框架支持检测 / 分割 / 姿态 / 分类四项任务。</div>
+        <button class="btn btn-primary btn-sm">立即使用</button>
+      </div>
+      <div class="card-foot">
+        <span class="card-meta">⭐ COCO 50.2</span>
+        <span class="badge badge-primary">推荐</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-img" style="background:linear-gradient(135deg,#0a1a0a,#53d769);">🎯</div>
+      <div class="card-body">
+        <div class="card-title">YOLOv10</div>
+        <div class="card-text">清华大学提出。双重标签分配消除 NMS 后处理，轻量级 CSPNet，端到端推理延迟更低。</div>
+        <button class="btn btn-ghost btn-sm">查看论文</button>
+      </div>
+      <div class="card-foot">
+        <span class="card-meta">👁 COCO 51.1</span>
+        <span class="badge badge-success">SOTA</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑭ ACCORDION -->
+<section class="sc-section" id="s-accordion">
+  <div class="sc-label">折叠面板 Accordion</div>
+  <div class="accordion-item">
+    <button class="accordion-btn open" data-acc="1">
+      什么是 Anchor-free 检测？<span class="acc-chevron">▼</span>
+    </button>
+    <div class="accordion-body open" id="acc-body-1">
+      <div class="accordion-content">
+        传统 YOLO（v1–v7）使用预设锚框（Anchor）作为先验框，需要对每张图像与锚框计算 IoU 进行匹配。Anchor-free 方法（YOLOv8/v10）直接预测目标中心点相对 Grid Cell 的偏移量和宽高，无需锚框先验，简化超参调节，在小目标上泛化更好。
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <button class="accordion-btn" data-acc="2">
+      YOLOv4 引入了哪些训练技巧？<span class="acc-chevron">▼</span>
+    </button>
+    <div class="accordion-body" id="acc-body-2">
+      <div class="accordion-content">
+        YOLOv4 是 YOLO 系列技术密度最高的版本，主要创新包括：<strong>Mosaic 数据增强</strong>（4图拼接扩充上下文）、<strong>CIoU Loss</strong>（考虑长宽比一致性的边界框回归损失）、<strong>Mish 激活函数</strong>、<strong>DropBlock 正则化</strong>、<strong>CSPNet</strong>（跨阶段特征复用减少重复梯度）以及 <strong>PANet 颈部网络</strong>（双向特征融合）。
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <button class="accordion-btn" data-acc="3">
+      FPN 与 PAN 的区别？<span class="acc-chevron">▼</span>
+    </button>
+    <div class="accordion-body" id="acc-body-3">
+      <div class="accordion-content">
+        <strong>FPN（Feature Pyramid Network）</strong>自顶向下逐层融合高层语义特征，增强小目标的语义信息。<strong>PAN（Path Aggregation Network）</strong>在 FPN 的基础上再增加一条自底向上的路径，将低层高分辨率的定位信息向上传递，弥补 FPN 中位置信息的损失。YOLOv4 起使用 FPN + PAN 双向融合，兼顾语义与定位。
+      </div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <button class="accordion-btn" data-acc="4">
+      NMS 为什么是推理瓶颈，YOLOv10 如何解决？<span class="acc-chevron">▼</span>
+    </button>
+    <div class="accordion-body" id="acc-body-4">
+      <div class="accordion-content">
+        非极大值抑制（NMS）是一个串行的后处理步骤，无法并行化，在目标密集场景（如行人检测）下延迟尤为突出，且 IoU 阈值需要人工调节。YOLOv10 引入<strong>双重标签分配策略（Dual-label assignment）</strong>：训练时使用一对多分配获得丰富监督信号，推理时切换为一对一分配直接输出唯一预测框，从根本上消除 NMS，实现真正的端到端检测。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑮ INNER TABS -->
+<section class="sc-section" id="s-tabs">
+  <div class="sc-label">嵌套标签页 Nested Tabs</div>
+  <div class="inner-tab-bar">
+    <button class="inner-tab-btn active" data-inner="tab-backbone">骨干网络</button>
+    <button class="inner-tab-btn" data-inner="tab-train">训练策略</button>
+    <button class="inner-tab-btn" data-inner="tab-deploy">部署方式</button>
+    <button class="inner-tab-btn" data-inner="tab-infer">推理流程</button>
+  </div>
+  <div class="inner-pane active" id="tab-backbone">
+    <strong>骨干网络演化</strong><br><br>
+    <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">Darknet-24</code> v1 (2015) → <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">Darknet-19</code> v2 → <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">Darknet-53</code> v3 (ResNet残差块) → <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">CSPDarknet-53</code> v4/v5 (跨阶段融合，减少重复计算) → <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">E-ELAN</code> v7 (高效层聚合，扩展混洗) → <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">C2f</code> v8 (C3升级版，梯度流更丰富) → <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">CSPNet-v10</code> v10 (紧凑倒置块减参数)
+  </div>
+  <div class="inner-pane" id="tab-train">
+    <strong>关键训练策略</strong><br><br>
+    <strong>数据增强：</strong>Mosaic (v4+) · CutMix · MixUp · Copy-Paste · 随机仿射变换 · HSV 颜色抖动<br><br>
+    <strong>正则化：</strong>DropBlock · Label Smoothing · Close Mosaic (最后10epoch关闭Mosaic)<br><br>
+    <strong>优化器：</strong>SGD + 余弦退火学习率 · AdamW (v8) · EMA 指数滑动平均权重<br><br>
+    <strong>损失函数：</strong>MSE → IoU → GIoU → CIoU (v4+) → DFLoss + VFLoss (v8+)
+  </div>
+  <div class="inner-pane" id="tab-deploy">
+    <strong>部署格式支持</strong><br><br>
+    <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">.pt</code> PyTorch 原生，调试首选 &nbsp;|&nbsp;
+    <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">.onnx</code> 跨框架通用格式 &nbsp;|&nbsp;
+    <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">TensorRT</code> NVIDIA GPU 极速推理 &nbsp;|&nbsp;
+    <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">CoreML</code> Apple 设备端推理 &nbsp;|&nbsp;
+    <code style="background:var(--surface-alt);padding:2px 6px;color:var(--primary);">OpenVINO</code> Intel 硬件优化<br><br>
+    一般流程：训练 → 导出 ONNX → 量化（INT8/FP16）→ TensorRT 编译 → 部署
+  </div>
+  <div class="inner-pane" id="tab-infer">
+    <strong>推理完整流程</strong><br><br>
+    1. <strong>预处理</strong>：Letterbox 等比缩放至 640×640，归一化 [0,1]，BGR→RGB，增加 Batch 维<br><br>
+    2. <strong>前向推理</strong>：模型输出原始张量，形状为 [B, 84, 8400]（COCO 80类 + 4坐标 × 8400锚点）<br><br>
+    3. <strong>后处理</strong>：解码坐标（xywh→xyxy）→ 置信度过滤（conf&gt;0.25）→ NMS（YOLOv10略去此步）<br><br>
+    4. <strong>反缩放</strong>：将预测坐标从 640×640 空间映射回原图尺寸<br><br>
+    5. <strong>可视化</strong>：绘制边界框、类别标签、置信度分数
+  </div>
+</section>
+
+<!-- ⑯ CODE BLOCK -->
+<section class="sc-section" id="s-code">
+  <div class="sc-label">代码展示 Code Block</div>
+  <div class="code-block"><span class="cm"># YOLOv8 推理示例 — ultralytics >= 8.0</span>
+<span class="kw">from</span> <span class="fn">ultralytics</span> <span class="kw">import</span> <span class="fn">YOLO</span>
+
+<span class="cm"># 加载预训练权重</span>
+<span class="var">model</span> = <span class="fn">YOLO</span>(<span class="str">'yolov8m.pt'</span>)   <span class="cm"># 25.9M params · COCO mAP 50.2</span>
+
+<span class="cm"># 执行推理</span>
+<span class="var">results</span> = <span class="var">model</span>.<span class="fn">predict</span>(
+    source=<span class="str">'image.jpg'</span>,
+    conf=<span class="num">0.25</span>,     <span class="cm"># 置信度阈值</span>
+    iou=<span class="num">0.45</span>,      <span class="cm"># NMS IoU 阈值</span>
+    imgsz=<span class="num">640</span>,     <span class="cm"># 输入分辨率</span>
+    half=<span class="kw">True</span>,      <span class="cm"># FP16 半精度加速</span>
+    device=<span class="str">'cuda'</span>,  <span class="cm"># 推理设备</span>
+)
+
+<span class="cm"># 解析检测结果</span>
+<span class="kw">for</span> <span class="var">result</span> <span class="kw">in</span> <span class="var">results</span>:
+    <span class="var">boxes</span>   = <span class="var">result</span>.boxes.xyxy.cpu()   <span class="cm"># [x1, y1, x2, y2]</span>
+    <span class="var">scores</span>  = <span class="var">result</span>.boxes.conf.cpu()   <span class="cm"># 置信度分数</span>
+    <span class="var">classes</span> = <span class="var">result</span>.boxes.cls.cpu()    <span class="cm"># 类别索引</span>
+    <span class="var">names</span>   = [<span class="var">result</span>.names[<span class="fn">int</span>(<span class="var">c</span>)] <span class="kw">for</span> <span class="var">c</span> <span class="kw">in</span> <span class="var">classes</span>]
+    <span class="fn">print</span>(<span class="fn">f</span><span class="str">"检测到 {len(boxes)} 个目标: {set(names)}"</span>)
+
+<span class="cm"># 导出为 ONNX 用于部署</span>
+<span class="var">model</span>.<span class="fn">export</span>(format=<span class="str">'onnx'</span>, half=<span class="kw">True</span>, dynamic=<span class="kw">True</span>)</div>
+</section>
+
+<!-- ⑰ TIMELINE -->
+<section class="sc-section" id="s-timeline">
+  <div class="sc-label">发展时间轴 Timeline</div>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-time">2015 · CVPR · Redmon, Farhadi et al.</div>
+      <div class="tl-title">YOLOv1 — 单阶段检测革命</div>
+      <div class="tl-desc">首次将目标检测统一为单次回归问题。45 FPS · VOC mAP 63.4 · Darknet-24 骨干 · 将检测速度提升至实时级别。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot accent"></div>
+      <div class="tl-time">2016 · CVPR · Redmon, Farhadi</div>
+      <div class="tl-title">YOLOv2 / YOLO9000 — 锚框引入</div>
+      <div class="tl-desc">引入 Anchor Boxes、Batch Normalization、高分辨率分类器预训练。YOLO9000 可识别 9000+ 类别（WordTree 联合训练）。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot accent"></div>
+      <div class="tl-time">2018 · arXiv · Redmon, Farhadi</div>
+      <div class="tl-title">YOLOv3 — 多尺度特征检测</div>
+      <div class="tl-desc">引入 Darknet-53 骨干（含残差块）、FPN 多尺度输出（3个尺度）、Logistic 代替 Softmax 支持多标签。COCO mAP 33.0。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-time">2020 · arXiv · Bochkovskiy, Wang, Liao</div>
+      <div class="tl-title">YOLOv4 — 技术集大成</div>
+      <div class="tl-desc">CSPDarknet + PANet + Mosaic增强 + CIoU Loss + Mish激活 · COCO 43.5 mAP · 65 FPS on V100 · 确立现代 YOLO 基础架构范式。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot accent"></div>
+      <div class="tl-time">2020 · GitHub · Ultralytics (Glenn Jocher)</div>
+      <div class="tl-title">YOLOv5 — 工程化与生态建设</div>
+      <div class="tl-desc">PyTorch 原生重写，自动混合精度、AutoAnchor、超参数进化优化。COCO mAP 45.4 · 112 FPS · 生态最完整、社区最活跃。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot success"></div>
+      <div class="tl-time">2022 · CVPR · Wang, Bochkovskiy, Liao</div>
+      <div class="tl-title">YOLOv7 — 速度精度双 SOTA</div>
+      <div class="tl-desc">E-ELAN 扩展高效层聚合网络 + 辅助头训练 + 再参数化。161 FPS · COCO mAP 51.2 · 发布时在速度精度帕累托前沿全面领先。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-time">2023 · Ultralytics</div>
+      <div class="tl-title">YOLOv8 — Anchor-free 统一框架</div>
+      <div class="tl-desc">C2f 模块替代 C3、Anchor-free 检测头、DFL 分布焦点损失。统一支持检测/分割/姿态/分类四任务 · COCO mAP 50.2 · 成为新一代基准。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot success"></div>
+      <div class="tl-time">2024 · 清华大学 Wang et al.</div>
+      <div class="tl-title">YOLOv10 — NMS-free 端到端检测</div>
+      <div class="tl-desc">双重标签分配彻底消除 NMS 后处理 · 紧凑倒置块降低参数量 · YOLOv10-X COCO 54.4 mAP · 开启 YOLO 端到端新时代。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑱ AVATARS + TOOLTIPS -->
+<section class="sc-section" id="s-avatars">
+  <div class="sc-label">主要作者 &amp; 工具提示</div>
+  <div class="two-col">
+    <div class="stack">
+      <div style="font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;font-family:var(--body-font);">核心贡献者</div>
+      <div class="avatar-row">
+        <div class="avatar xs av-a">R</div>
+        <div class="avatar sm av-b">F</div>
+        <div class="avatar md av-c">B</div>
+        <div class="avatar lg av-d">G</div>
+      </div>
+      <div style="font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:16px 0 10px;font-family:var(--body-font);">机构方形头像</div>
+      <div class="avatar-row">
+        <div class="avatar md square av-a">UW</div>
+        <div class="avatar md square av-b">DU</div>
+        <div class="avatar md square av-c">AI</div>
+        <div class="avatar md square av-e">THU</div>
+      </div>
+      <div style="font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:16px 0 10px;font-family:var(--body-font);">贡献者头像组</div>
+      <div class="av-stack">
+        <div class="avatar sm av-a">R</div>
+        <div class="avatar sm av-b">F</div>
+        <div class="avatar sm av-c">B</div>
+        <div class="avatar sm av-d">G</div>
+        <div class="avatar sm av-e" style="font-size:9px;">+6</div>
+      </div>
+    </div>
+    <div class="stack">
+      <div style="font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;font-family:var(--body-font);">悬浮提示 Tooltips</div>
+      <div class="tooltip-demo">
+        <div class="tt-wrap">
+          <div class="avatar md av-a" style="cursor:pointer;">R</div>
+          <div class="tt-tip">Joseph Redmon · UW · v1–v3</div>
+        </div>
+        <div class="tt-wrap">
+          <div class="avatar md av-b" style="cursor:pointer;">F</div>
+          <div class="tt-tip">Ali Farhadi · UW · v1–v3</div>
+        </div>
+        <div class="tt-wrap">
+          <div class="avatar md av-c" style="cursor:pointer;">B</div>
+          <div class="tt-tip">Alexey Bochkovskiy · YOLOv4</div>
+        </div>
+        <div class="tt-wrap">
+          <div class="avatar md av-d" style="cursor:pointer;">G</div>
+          <div class="tt-tip">Glenn Jocher · Ultralytics v5/v8</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="tooltip-demo">
+          <div class="tt-wrap">
+            <button class="btn btn-primary btn-sm">▶ 运行</button>
+            <div class="tt-tip">在 GPU 上执行推理</div>
+          </div>
+          <div class="tt-wrap">
+            <button class="btn btn-ghost btn-icon">⤓</button>
+            <div class="tt-tip">下载 .pt 权重文件</div>
+          </div>
+          <div class="tt-wrap">
+            <button class="btn btn-ghost btn-icon">⚙</button>
+            <div class="tt-tip">推理参数配置</div>
+          </div>
+          <div class="tt-wrap">
+            <button class="btn btn-ghost btn-icon">★</button>
+            <div class="tt-tip">标记为常用模型</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑲ PAGINATION + MODAL + TOAST -->
+<section class="sc-section" id="s-pager">
+  <div class="sc-label">分页 &amp; 弹窗 &amp; Toast</div>
+  <div class="pagination">
+    <button class="page-btn" disabled>«</button>
+    <button class="page-btn" disabled>‹</button>
+    <button class="page-btn">1</button>
+    <button class="page-btn">2</button>
+    <button class="page-btn active">3</button>
+    <button class="page-btn">4</button>
+    <button class="page-btn">5</button>
+    <span style="color:var(--text-muted);padding:0 4px;font-size:18px;">···</span>
+    <button class="page-btn">12</button>
+    <button class="page-btn">›</button>
+    <button class="page-btn">»</button>
+  </div>
+  <div style="margin-top:12px;text-align:center;font-size:18px;color:var(--text-muted);font-family:var(--body-font);">共 240 条检测结果 · 每页 20 条 · 第 3 / 12 页</div>
+  <hr class="divider" style="margin:32px 0 24px;">
+  <div class="flex-row">
+    <button class="btn btn-primary" id="openModalBtn3">▶ 确认运行推理</button>
+    <button class="btn btn-secondary" id="toastOkBtn">✓ 模型加载成功</button>
+    <button class="btn btn-ghost" id="toastWarnBtn2">⚠ 低置信度检测</button>
+    <button class="btn btn-danger" id="toastErrBtn2">✕ GPU 内存溢出</button>
+  </div>
+</section>
+
+</div><!-- end .showcase -->
+</main>
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">确认运行推理</span>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      即将使用以下配置启动 YOLO 推理：<br><br>
+      <strong>模型</strong>：YOLOv10m &nbsp;|&nbsp; <strong>设备</strong>：CUDA GPU<br>
+      <strong>置信度</strong>：0.25 &nbsp;|&nbsp; <strong>IoU</strong>：0.45 &nbsp;|&nbsp; <strong>分辨率</strong>：640px<br><br>
+      NMS-free 端到端推理已启用，将跳过后处理 NMS 步骤，直接输出最终检测框。
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="modalCancel">取消</button>
+      <button class="btn btn-primary" id="modalConfirm">▶ 确认运行</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST AREA ── -->
+<div class="toast-area" id="toastArea"></div>
+
+<script>
+/* ── PAGE HEADER NAV ── */
+document.querySelectorAll('.ph-link').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.closest('.ph-nav').querySelectorAll('.ph-link').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+/* ── ACCORDION ── */
+document.querySelectorAll('[data-acc]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const body = document.getElementById('acc-body-' + btn.dataset.acc);
+    if (!body) return;
+    const open = btn.classList.toggle('open');
+    body.classList.toggle('open', open);
+  });
+});
+
+/* ── INNER TABS (shared handler for both tab groups) ── */
+document.querySelectorAll('.inner-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const bar = btn.closest('.inner-tab-bar');
+    bar.querySelectorAll('.inner-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const container = bar.parentElement;
+    container.querySelectorAll('.inner-pane').forEach(p => {
+      p.classList.toggle('active', p.id === btn.dataset.inner);
+    });
+  });
+});
+
+/* ── RANGE SLIDERS ── */
+const rangeConf = document.getElementById('rangeConf');
+const rangeConfVal = document.getElementById('rangeConfVal');
+if (rangeConf) rangeConf.addEventListener('input', () => {
+  rangeConfVal.textContent = (rangeConf.value / 100).toFixed(2);
+});
+
+const rangeIou = document.getElementById('rangeIou');
+const rangeIouVal = document.getElementById('rangeIouVal');
+if (rangeIou) rangeIou.addEventListener('input', () => {
+  rangeIouVal.textContent = (rangeIou.value / 100).toFixed(2);
+});
+
+/* ── CHIPS ── */
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', e => {
+    if (e.target.classList.contains('chip-close')) { chip.remove(); return; }
+    chip.classList.toggle('selected');
+  });
+});
+
+/* ── PAGINATION ── */
+document.querySelectorAll('.page-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    if (this.disabled) return;
+    const num = parseInt(this.textContent);
+    if (!isNaN(num)) {
+      this.closest('.pagination').querySelectorAll('.page-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    }
+  });
+});
+
+/* ── TOAST ── */
+function showToast(msg, type = 'info') {
+  const area = document.getElementById('toastArea');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  area.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity .3s, transform .3s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(120%)';
+    setTimeout(() => toast.remove(), 350);
+  }, 3200);
+}
+
+/* ── MODAL ── */
+const overlay     = document.getElementById('modalOverlay');
+const modalClose  = document.getElementById('modalClose');
+const modalCancel = document.getElementById('modalCancel');
+const modalConfirm= document.getElementById('modalConfirm');
+
+function openModal()  { overlay.classList.add('open'); }
+function closeModal() { overlay.classList.remove('open'); }
+
+['openModalBtn','openModalBtn2','openModalBtn3'].forEach(id => {
+  document.getElementById(id)?.addEventListener('click', openModal);
+});
+modalClose?.addEventListener('click', closeModal);
+modalCancel?.addEventListener('click', closeModal);
+overlay?.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+modalConfirm?.addEventListener('click', () => {
+  closeModal();
+  showToast('YOLOv10m 推理已启动，NMS-free 模式', 'success');
+});
+
+/* ── TOAST BUTTONS ── */
+document.getElementById('toastBtn')?.addEventListener('click',
+  () => showToast('正在跳转到 arXiv 论文页面…', 'info'));
+document.getElementById('toastSuccessBtn')?.addEventListener('click',
+  () => showToast('推理完成：检测到 12 个目标', 'success'));
+document.getElementById('toastWarnBtn')?.addEventListener('click',
+  () => showToast('警告：3 个检测框置信度低于 0.30', 'warning'));
+document.getElementById('toastErrBtn')?.addEventListener('click',
+  () => showToast('错误：CUDA out of memory，请降低 batch size', 'error'));
+document.getElementById('toastOkBtn')?.addEventListener('click',
+  () => showToast('YOLOv10m 权重加载成功（15.4M 参数）', 'success'));
+document.getElementById('toastWarnBtn2')?.addEventListener('click',
+  () => showToast('检测到 5 个低置信度目标（conf < 0.30）', 'warning'));
+document.getElementById('toastErrBtn2')?.addEventListener('click',
+  () => showToast('GPU 内存溢出：减小输入分辨率或 batch size', 'error'));
+
+/* ── SIDEBAR ACTIVE on SCROLL ── */
+const sections = document.querySelectorAll('.sc-section[id]');
+const sideLinks = document.querySelectorAll('.sidebar-link[href]');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = '#' + entry.target.id;
+      sideLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === id));
+    }
+  });
+}, { threshold: 0.2, rootMargin: '-60px 0px -60% 0px' });
+
+sections.forEach(s => observer.observe(s));
+
+/* ── MOBILE MENU ── */
+document.getElementById('menuToggle')?.addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+sideLinks.forEach(a => {
+  a.addEventListener('click', () => {
+    if (window.innerWidth <= 860) document.getElementById('sidebar').classList.remove('open');
+  });
+});
+
+/* ── ZOOM SLIDER ── */
+const zoomSlider = document.getElementById('zoomSlider');
+const zoomValue  = document.getElementById('zoomValue');
+
+function applyZoom(val) {
+  const zoom = val / 100;
+  document.body.style.zoom = zoom;
+  zoomValue.textContent = val + '%';
+  try { localStorage.setItem('yolo-zoom', val); } catch(e) {}
+}
+
+if (zoomSlider) {
+  // 读取存储的缩放值
+  let saved = null;
+  try { saved = localStorage.getItem('yolo-zoom'); } catch(e) {}
+  const initial = saved ? parseInt(saved, 10) : 100;
+
+  zoomSlider.value = initial;
+  applyZoom(initial);
+
+  zoomSlider.addEventListener('input', () => {
+    applyZoom(parseInt(zoomSlider.value, 10));
+  });
+}
+</script>
+</body>
+</html>
