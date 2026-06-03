@@ -1,10 +1,13 @@
 # 20 种 HTML UI 风格模板
 
+> 🚀 **[在线预览 →](https://rianusr.github.io/html-ui-styles/)**
+
 同一套页面内容，20 种截然不同的 UI 设计语言。纯 HTML + CSS + JS，零依赖，开箱即用。
 
 ## 预览
 
-浏览器直接打开 `index.html`，浏览所有风格卡片，点击进入各模板完整页面。
+- **在线体验**：[https://rianusr.github.io/html-ui-styles/](https://rianusr.github.io/html-ui-styles/)
+- **本地预览**：浏览器直接打开 `index.html`
 
 ## 风格列表
 
